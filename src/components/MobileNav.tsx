@@ -11,6 +11,7 @@ const navItems = [
 export default function MobileNav() {
   return (
     <nav
+      data-mobile-nav
       style={{
         position: 'fixed',
         bottom: 0,
@@ -27,23 +28,39 @@ export default function MobileNav() {
         <NavLink
           key={to}
           to={to}
+          title={label}
           style={({ isActive }) => ({
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0.625rem 0',
-            gap: '0.25rem',
+            padding: '0.75rem 0',
             color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             textDecoration: 'none',
-            fontSize: '0.625rem',
-            fontWeight: 500,
             transition: 'color 150ms',
+            position: 'relative',
           })}
         >
-          <Icon size={20} />
-          {label}
+          {({ isActive }) => (
+            <>
+              <Icon size={22} />
+              {isActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '24px',
+                    height: '2px',
+                    backgroundColor: 'var(--accent)',
+                    borderRadius: '0 0 2px 2px',
+                  }}
+                />
+              )}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

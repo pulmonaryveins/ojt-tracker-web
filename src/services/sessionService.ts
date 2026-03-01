@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase'
+import { uploadToStorage } from '../lib/storage'
 import type { Session, SessionWithBreaks } from '../types/database'
 
 export type BreakInput = {
@@ -89,8 +90,9 @@ const SessionService = {
     timeOut: string | null,
     totalHours: number,
     duration: number,
-    notes: string | null,
-    breaks: BreakInput[]
+    journal: string | null,
+    breaks: BreakInput[],
+    reportImages: string[] | null = null
   ): Promise<Session> {
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
@@ -101,9 +103,9 @@ const SessionService = {
         end_time: timeOut,
         duration,
         total_hours: totalHours,
-        description: notes,
-        journal: null,
-        report_images: null,
+        description: null,
+        journal,
+        report_images: reportImages,
       } as any)
       .select()
       .single()
@@ -188,6 +190,67 @@ const SessionService = {
     if (error) throw error
     const uniqueDays = new Set(((data ?? []) as any as { date: string }[]).map((s) => s.date))
     return uniqueDays.size
+  },
+
+  async getSessionsForMonth(userId: string, year: number, month: number): Promise<Session[]> {
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true })
+
+    if (error) throw error
+    return (data ?? []) as any as Session[]
+  },
+
+  async getAverageSchedule(userId: string): Promise<{
+    avgTimeIn: string | null
+    avgTimeOut: string | null
+    avgTotalHours: number
+  }> {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('start_time, end_time, total_hours')
+      .eq('user_id', userId)
+      .not('end_time', 'is', null)
+      .order('date', { ascending: false })
+      .limit(20)
+
+    if (error) throw error
+    const sessions = (data ?? []) as any as { start_time: string; end_time: string; total_hours: number }[]
+    if (sessions.length === 0) return { avgTimeIn: null, avgTimeOut: null, avgTotalHours: 0 }
+
+    function timeToMinutes(t: string) {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + m
+    }
+    function minutesToTimeString(mins: number) {
+      const h = Math.floor(mins / 60) % 24
+      const m = Math.round(mins % 60)
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+    }
+
+    const avgIn = sessions.reduce((s, r) => s + timeToMinutes(r.start_time), 0) / sessions.length
+    const avgOut = sessions.reduce((s, r) => s + timeToMinutes(r.end_time), 0) / sessions.length
+    const avgHours = sessions.reduce((s, r) => s + r.total_hours, 0) / sessions.length
+
+    return {
+      avgTimeIn: minutesToTimeString(avgIn),
+      avgTimeOut: minutesToTimeString(avgOut),
+      avgTotalHours: Math.round(avgHours * 10) / 10,
+    }
+  },
+
+  async uploadSessionImage(file: File, userId: string): Promise<string> {
+    const ext = file.name.split('.').pop()
+    const fileName = `${userId}/${Date.now()}.${ext}`
+    return uploadToStorage('session-images', fileName, file)
   },
 }
 
