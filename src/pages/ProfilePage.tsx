@@ -2,7 +2,8 @@ import { useState, type FormEvent, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Camera, User, Briefcase, Clock, Calendar, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp } from 'lucide-react'
+import { Camera, User, Briefcase, Clock, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp } from 'lucide-react'
+import { DatePicker } from '../components/ui/DatePicker'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import { uploadToStorage } from '../lib/storage'
@@ -69,16 +70,17 @@ export default function ProfilePage() {
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single()
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle()
       return data as Profile | null
     },
     enabled: !!userId,
+    refetchOnWindowFocus: false,
   })
 
   const { data: ojtSetup, isLoading: loadingOjt } = useQuery({
     queryKey: ['ojtSetup', userId],
     queryFn: async () => {
-      const { data } = await supabase.from('ojt_setup').select('*').eq('user_id', userId).single()
+      const { data } = await supabase.from('ojt_setup').select('*').eq('user_id', userId).maybeSingle()
       return data as OjtSetup | null
     },
     enabled: !!userId,
@@ -129,12 +131,11 @@ export default function ProfilePage() {
     mutationFn: async () => {
       let pictureUrl = profile?.profile_picture_url ?? null
       if (avatarFile) pictureUrl = await uploadAvatar()
-      const updates = { full_name: fullName, school, year_level: yearLevel, workplace, profile_picture_url: pictureUrl }
+      const upsertData = { user_id: userId, full_name: fullName, school, year_level: yearLevel, workplace, profile_picture_url: pictureUrl }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = profile
-        ? await supabase.from('profiles').update(updates as any).eq('user_id', userId)
-        : await supabase.from('profiles').insert({ user_id: userId, ...updates } as any)
-      if (error) throw error
+      const response = await (supabase.from('profiles') as any).upsert(upsertData, { onConflict: 'user_id' }).select()
+      if (response.error) throw response.error
+      if (!response.data?.length) throw new Error('Profile not saved — no rows returned. Check that user_id has a UNIQUE constraint and RLS has INSERT + UPDATE policies.')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', userId] })
@@ -146,12 +147,11 @@ export default function ProfilePage() {
 
   const { mutate: saveOjt, isPending: savingOjt } = useMutation({
     mutationFn: async () => {
-      const ojtData = { user_id: userId, required_hours: parseFloat(requiredHours), start_date: ojtStart, end_date: ojtEnd || null }
+      const upsertData = { user_id: userId, required_hours: parseFloat(requiredHours), start_date: ojtStart, end_date: ojtEnd || null }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = ojtSetup
-        ? await supabase.from('ojt_setup').update(ojtData as any).eq('user_id', userId)
-        : await supabase.from('ojt_setup').insert(ojtData as any)
-      if (error) throw error
+      const response = await (supabase.from('ojt_setup') as any).upsert(upsertData, { onConflict: 'user_id' }).select()
+      if (response.error) throw response.error
+      if (!response.data?.length) throw new Error('OJT setup not saved — no rows returned. Check that user_id has a UNIQUE constraint and RLS has INSERT + UPDATE policies.')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ojtSetup', userId] })
@@ -396,20 +396,12 @@ export default function ProfilePage() {
 
             <div>
               <FieldLabel text="OJT Start Date" hint="The first official day of your on-the-job training" />
-              <div className="input-icon-wrapper">
-                <Calendar size={15} className="input-icon" />
-                <input type="date" value={ojtStart} onChange={(e) => setOjtStart(e.target.value)}
-                  style={inputBase} onFocus={onFocus} onBlur={onBlur} />
-              </div>
+              <DatePicker value={ojtStart} onChange={setOjtStart} placeholder="Select start date" />
             </div>
 
             <div>
               <FieldLabel text="Expected End Date (Optional)" hint="Leave blank to auto-calculate based on your progress" />
-              <div className="input-icon-wrapper">
-                <Calendar size={15} className="input-icon" />
-                <input type="date" value={ojtEnd} onChange={(e) => setOjtEnd(e.target.value)}
-                  style={inputBase} onFocus={onFocus} onBlur={onBlur} />
-              </div>
+              <DatePicker value={ojtEnd} onChange={setOjtEnd} placeholder="Select end date (optional)" />
             </div>
 
             {estimatedCompletion && !ojtEnd && (

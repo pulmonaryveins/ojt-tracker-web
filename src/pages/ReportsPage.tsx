@@ -2,27 +2,18 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
-  FileText, Download, Calendar, Clock, TrendingUp, BarChart3,
+  FileText, Download, Clock, TrendingUp, BarChart3,
   CalendarDays, Printer, Filter,
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import SessionService from '../services/sessionService'
 import { formatTime12h, formatHours, formatDuration } from '../utils/timeUtils'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import type { Profile, OjtSetup } from '../types/database'
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: 'var(--bg-secondary)',
-  border: '1px solid var(--border)',
-  borderRadius: '0.375rem',
-  padding: '0.625rem 0.75rem 0.625rem 2.25rem',
-  color: 'var(--text-primary)',
-  fontSize: '0.875rem',
-  outline: 'none',
-  width: '100%',
-  transition: 'border-color 150ms, box-shadow 150ms',
-}
+import { DatePicker } from '../components/ui/DatePicker'
 
 export default function ReportsPage() {
   const user = useAuthStore((s) => s.user)
@@ -86,7 +77,53 @@ export default function ReportsPage() {
   }
 
   function exportPDF() {
-    window.print()
+    const doc = new jsPDF()
+    const accent: [number, number, number] = [88, 101, 242]
+
+    // Title
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('OJT Progress Report', 14, 20)
+
+    // Info block
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    let y = 32
+    doc.text(`Student: ${profile?.full_name ?? user?.email ?? ''}`, 14, y)
+    if (profile?.school) { y += 6; doc.text(`School: ${profile.school}`, 14, y) }
+    if (profile?.workplace) { y += 6; doc.text(`Company: ${profile.workplace}`, 14, y) }
+    if (ojtSetup?.required_hours) { y += 6; doc.text(`Required Hours: ${ojtSetup.required_hours}h`, 14, y) }
+    y += 6; doc.text(`Period: ${format(new Date(startDate + 'T00:00:00'), 'MMM d, yyyy')} – ${format(new Date(endDate + 'T00:00:00'), 'MMM d, yyyy')}`, 14, y)
+
+    // Summary stats
+    y += 10
+    doc.setFont('helvetica', 'bold')
+    doc.text('Summary', 14, y)
+    y += 6
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `Total Hours: ${formatHours(totalHours)}   |   Days Attended: ${uniqueDays}   |   Avg/Day: ${formatHours(avgHrsPerDay)}   |   Sessions: ${sessions.length}`,
+      14, y,
+    )
+
+    // Table
+    autoTable(doc, {
+      startY: y + 10,
+      head: [['Date', 'Time In', 'Time Out', 'Duration', 'Hours', 'Notes']],
+      body: sessions.map((s) => [
+        format(new Date(s.date + 'T00:00:00'), 'MMM d, yyyy'),
+        formatTime12h(s.start_time),
+        s.end_time ? formatTime12h(s.end_time) : '—',
+        formatDuration(s.duration),
+        s.total_hours.toFixed(2) + 'h',
+        s.journal ? s.journal.slice(0, 80) : (s.description ?? '—'),
+      ]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: accent, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 250] },
+    })
+
+    doc.save(`ojt-report-${startDate}-to-${endDate}.pdf`)
   }
 
   const statCards = [
@@ -161,21 +198,11 @@ export default function ReportsPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '180px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
-            <div className="input-icon-wrapper">
-              <Calendar size={14} className="input-icon" />
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }} />
-            </div>
+            <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '180px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
-            <div className="input-icon-wrapper">
-              <Calendar size={14} className="input-icon" />
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }} />
-            </div>
+            <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
           </div>
           {dateRangeLabel && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 0.875rem', backgroundColor: 'var(--accent-light)', borderRadius: '0.5rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
