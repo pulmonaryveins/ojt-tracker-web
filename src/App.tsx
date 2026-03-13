@@ -20,6 +20,7 @@ import NewSessionPage from './pages/NewSessionPage'
 import SessionDetailPage from './pages/SessionDetailPage'
 import ReportsPage from './pages/ReportsPage'
 import ProfilePage from './pages/ProfilePage'
+import EarningsPage from './pages/EarningsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,7 @@ function AnimatedRoutes() {
             <Route path="/logs/new" element={<NewSessionPage />} />
             <Route path="/logs/:id" element={<SessionDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/earnings" element={<EarningsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Route>

@@ -43,6 +43,14 @@ export interface SessionWithBreaks extends Session {
   breaks: Break[]
 }
 
+export interface PaySetup {
+  user_id: string
+  is_enabled: boolean
+  hourly_rate: number
+  currency: string
+  effective_date: string | null
+}
+
 // Supabase Database type for typed client
 export interface Database {
   public: {
@@ -56,6 +64,11 @@ export interface Database {
         Row: OjtSetup
         Insert: OjtSetup
         Update: Partial<OjtSetup>
+      }
+      pay_setup: {
+        Row: PaySetup
+        Insert: PaySetup
+        Update: Partial<PaySetup>
       }
       sessions: {
         Row: Session

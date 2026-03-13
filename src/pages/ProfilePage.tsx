@@ -2,7 +2,7 @@ import { useState, type FormEvent, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Camera, User, Briefcase, Clock, Calendar, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp } from 'lucide-react'
+import { Camera, User, Briefcase, Clock, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import { uploadToStorage } from '../lib/storage'
@@ -11,6 +11,7 @@ import type { Profile, OjtSetup } from '../types/database'
 import { useThemeStore, ACCENT_COLORS, type AccentColor, applyTheme } from '../stores/themeStore'
 import { useToast } from '../components/ui/Toast'
 import { SkeletonCard } from '../components/ui/Skeleton'
+import { DatePicker } from '../components/ui/DatePicker'
 import { format } from 'date-fns'
 
 const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`
@@ -396,20 +397,12 @@ export default function ProfilePage() {
 
             <div>
               <FieldLabel text="OJT Start Date" hint="The first official day of your on-the-job training" />
-              <div className="input-icon-wrapper">
-                <Calendar size={15} className="input-icon" />
-                <input type="date" value={ojtStart} onChange={(e) => setOjtStart(e.target.value)}
-                  style={inputBase} onFocus={onFocus} onBlur={onBlur} />
-              </div>
+              <DatePicker value={ojtStart} onChange={setOjtStart} placeholder="Select start date" />
             </div>
 
             <div>
               <FieldLabel text="Expected End Date (Optional)" hint="Leave blank to auto-calculate based on your progress" />
-              <div className="input-icon-wrapper">
-                <Calendar size={15} className="input-icon" />
-                <input type="date" value={ojtEnd} onChange={(e) => setOjtEnd(e.target.value)}
-                  style={inputBase} onFocus={onFocus} onBlur={onBlur} />
-              </div>
+              <DatePicker value={ojtEnd} onChange={setOjtEnd} placeholder="Select end date (optional)" />
             </div>
 
             {estimatedCompletion && !ojtEnd && (

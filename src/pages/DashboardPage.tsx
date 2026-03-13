@@ -1,14 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, CalendarDays, TrendingUp, Target, Plus, FileText, Settings, Trophy, AlertCircle, LayoutDashboard, Sparkles } from 'lucide-react'
+import { Clock, CalendarDays, TrendingUp, Target, Plus, FileText, Settings, Trophy, AlertCircle, LayoutDashboard, Sparkles, DollarSign } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
 import { supabase } from '../lib/supabase'
 import { formatTime12h, formatHours } from '../utils/timeUtils'
 import { format, addDays } from 'date-fns'
-import type { OjtSetup, Profile } from '../types/database'
+import type { OjtSetup, Profile, PaySetup } from '../types/database'
 import { SkeletonCard, SkeletonStatCard } from '../components/ui/Skeleton'
+
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`
+  }
+}
 
 const listVariants = {
   hidden: {},
@@ -64,6 +72,15 @@ export default function DashboardPage() {
         .eq('user_id', userId)
         .single()
       return data as unknown as Profile | null
+    },
+    enabled: !!userId,
+  })
+
+  const { data: paySetup } = useQuery({
+    queryKey: ['paySetup', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('pay_setup').select('*').eq('user_id', userId).single()
+      return data as unknown as PaySetup | null
     },
     enabled: !!userId,
   })
@@ -232,6 +249,12 @@ export default function DashboardPage() {
             { icon: Target, label: 'Remaining', value: formatHours(remainingHours), color: 'var(--warning)' },
             { icon: CalendarDays, label: 'Days Attended', value: daysCount.toString(), color: 'var(--success)' },
             { icon: TrendingUp, label: 'Avg / Day', value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—', color: 'var(--info)' },
+            ...(paySetup?.is_enabled ? [{
+              icon: DollarSign,
+              label: 'Est. Earnings',
+              value: formatCurrency(totalHours * paySetup.hourly_rate, paySetup.currency),
+              color: 'var(--success)',
+            }] : []),
           ].map(({ icon: Icon, label, value, color }) => (
             <motion.div
               key={label}

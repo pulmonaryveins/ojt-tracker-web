@@ -165,7 +165,7 @@ export function TimePicker({
               border: '1px solid var(--border)',
               borderRadius: '1rem',
               padding: '1.5rem',
-              width: '300px',
+              width: '380px',
               boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
             }}
           >

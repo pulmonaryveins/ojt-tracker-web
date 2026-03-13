@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
-  FileText, Download, Calendar, Clock, TrendingUp, BarChart3,
+  FileText, Download, Clock, TrendingUp, BarChart3,
   CalendarDays, Printer, Filter,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
@@ -11,18 +11,7 @@ import SessionService from '../services/sessionService'
 import { formatTime12h, formatHours, formatDuration } from '../utils/timeUtils'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import type { Profile, OjtSetup } from '../types/database'
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: 'var(--bg-secondary)',
-  border: '1px solid var(--border)',
-  borderRadius: '0.375rem',
-  padding: '0.625rem 0.75rem 0.625rem 2.25rem',
-  color: 'var(--text-primary)',
-  fontSize: '0.875rem',
-  outline: 'none',
-  width: '100%',
-  transition: 'border-color 150ms, box-shadow 150ms',
-}
+import { DatePicker } from '../components/ui/DatePicker'
 
 export default function ReportsPage() {
   const user = useAuthStore((s) => s.user)
@@ -161,21 +150,11 @@ export default function ReportsPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '180px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
-            <div className="input-icon-wrapper">
-              <Calendar size={14} className="input-icon" />
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }} />
-            </div>
+            <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '180px' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
-            <div className="input-icon-wrapper">
-              <Calendar size={14} className="input-icon" />
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }} />
-            </div>
+            <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
           </div>
           {dateRangeLabel && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 0.875rem', backgroundColor: 'var(--accent-light)', borderRadius: '0.5rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap' }}>

@@ -7,6 +7,7 @@ import {
   User,
   LogOut,
   Clock,
+  DollarSign,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/logs', icon: BookOpen, label: 'Logs' },
   { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/earnings', icon: DollarSign, label: 'Earnings' },
   { to: '/profile', icon: User, label: 'Profile' },
 ]
 
@@ -34,7 +36,7 @@ export default function Sidebar() {
   const displayName = user?.user_metadata?.full_name ?? user?.email ?? 'User'
 
   const { data: profile } = useQuery({
-    queryKey: ['profile', userId],
+    queryKey: ['profile-nav', userId],
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
