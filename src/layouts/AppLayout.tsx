@@ -24,7 +24,7 @@ export default function AppLayout() {
           paddingBottom: '4rem', // space for mobile nav
         }}
       >
-        <div style={{ maxWidth: '1024px', margin: '0 auto', padding: '1.5rem 1rem' }}>
+        <div style={{ padding: '1.5rem 1.75rem' }}>
           <Outlet />
         </div>
       </main>

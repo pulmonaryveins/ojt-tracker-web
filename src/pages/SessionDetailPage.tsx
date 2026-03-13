@@ -177,9 +177,15 @@ export default function SessionDetailPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{ maxWidth: '640px' }}
     >
-      <style>{spinStyle}</style>
+      <style>{spinStyle}{`
+        @media (min-width: 900px) {
+          .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+        }
+        @media (max-width: 899px) {
+          .detail-grid { display: flex; flex-direction: column; gap: 1rem; }
+        }
+      `}</style>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
@@ -248,7 +254,9 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="detail-grid">
+        {/* ── Left column: time + breaks ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Time Information Card */}
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
           <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -360,6 +368,10 @@ export default function SessionDetailPage() {
             </div>
           )}
         </div>
+        </div>{/* end left column */}
+
+        {/* ── Right column: journal + images ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
         {/* Session Report / Journal */}
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
@@ -372,7 +384,7 @@ export default function SessionDetailPage() {
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><ClipboardList size={13} /> Session Report</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><ClipboardList size={13} /> Journal</span>
             {showJournal ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showJournal && (
@@ -517,11 +529,15 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        {/* Export / Back */}
+        </div>{/* end right column */}
+      </div>{/* end detail-grid */}
+
+      {/* Export / Back */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
         <button
           onClick={() => toast('PDF export coming soon!', 'info')}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
             backgroundColor: 'var(--accent)', color: 'white',
             borderRadius: '0.5rem', padding: '0.875rem',
             fontWeight: 700, fontSize: '0.9375rem',
@@ -533,7 +549,7 @@ export default function SessionDetailPage() {
         <Link
           to="/logs"
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
             backgroundColor: 'var(--bg-hover)',
             color: 'var(--text-primary)',
             borderRadius: '0.5rem', padding: '0.875rem',

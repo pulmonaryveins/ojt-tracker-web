@@ -59,38 +59,39 @@ export default function Sidebar() {
   return (
     <aside
       style={{
-        width: '240px',
+        width: '224px',
         minHeight: '100vh',
         backgroundColor: 'var(--bg-secondary)',
-        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
+        padding: '0.75rem',
+        gap: '0.25rem',
       }}
     >
       {/* ── Top Zone: Branding ── */}
       <div
         style={{
-          padding: '1.125rem 1rem',
-          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.625rem',
+          padding: '0.625rem 0.75rem',
+          marginBottom: '0.5rem',
         }}
       >
         <div
           style={{
             backgroundColor: 'var(--accent)',
             borderRadius: '0.5rem',
-            width: '32px',
-            height: '32px',
+            width: '30px',
+            height: '30px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <Clock size={18} color="white" />
+          <Clock size={16} color="white" />
         </div>
         <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
           OJT Tracker
@@ -98,7 +99,7 @@ export default function Sidebar() {
       </div>
 
       {/* ── Middle Zone: Navigation ── */}
-      <nav style={{ flex: 1, padding: '0.5rem' }}>
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -108,13 +109,11 @@ export default function Sidebar() {
               alignItems: 'center',
               gap: '0.625rem',
               padding: '0.625rem 0.75rem',
-              borderRadius: '0.375rem',
-              marginBottom: '0.125rem',
+              borderRadius: '0.5rem',
               fontSize: '0.875rem',
-              fontWeight: 500,
-              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-              backgroundColor: isActive ? 'var(--bg-hover)' : 'transparent',
-              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+              fontWeight: isActive ? 600 : 500,
+              color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+              backgroundColor: isActive ? 'var(--accent-light)' : 'transparent',
               textDecoration: 'none',
               transition: 'all 150ms',
             })}
@@ -133,32 +132,31 @@ export default function Sidebar() {
               }
             }}
           >
-            <Icon size={18} />
+            <Icon size={17} />
             {label}
           </NavLink>
         ))}
       </nav>
 
       {/* ── Bottom Zone: User + Logout ── */}
-      <div
-        style={{
-          padding: '0.75rem',
-          borderTop: '1px solid var(--border)',
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingTop: '0.5rem' }}>
         {/* User info row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
-          {/* Avatar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.625rem',
+          padding: '0.625rem 0.75rem',
+          borderRadius: '0.5rem',
+          backgroundColor: 'var(--bg-hover)',
+        }}>
           <div
             style={{
-              width: '34px',
-              height: '34px',
+              width: '30px',
+              height: '30px',
               borderRadius: '50%',
               backgroundColor: 'var(--accent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.75rem',
+              fontSize: '0.6875rem',
               fontWeight: 700,
               color: 'white',
               flexShrink: 0,
@@ -193,8 +191,8 @@ export default function Sidebar() {
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.5rem 0.625rem',
-            borderRadius: '0.375rem',
+            padding: '0.625rem 0.75rem',
+            borderRadius: '0.5rem',
             color: 'var(--text-muted)',
             fontSize: '0.8125rem',
             fontWeight: 500,

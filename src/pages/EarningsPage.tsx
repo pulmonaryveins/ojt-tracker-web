@@ -177,7 +177,7 @@ export default function EarningsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
     >
       <style>{spinStyle}</style>
 
