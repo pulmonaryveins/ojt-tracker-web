@@ -35,11 +35,9 @@ function shortAmount(amount: number): string {
 function MonthlyChart({
   sessions,
   rate,
-  currency,
 }: {
   sessions: Array<{ date: string; total_hours: number }>
   rate: number
-  currency: string
 }) {
   const currentMonth = format(new Date(), 'yyyy-MM')
 
@@ -406,7 +404,7 @@ export default function EarningsPage() {
               </div>
             </div>
             <div style={{ padding: '1rem 1.25rem 0.75rem' }}>
-              <MonthlyChart sessions={sessions} rate={rate} currency={curr} />
+              <MonthlyChart sessions={sessions} rate={rate} />
             </div>
           </div>
 
