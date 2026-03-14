@@ -158,7 +158,7 @@ export default function SignupPage() {
           <img
             src="/icon.png"
             alt="OJT Tracker"
-            style={{ width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', marginBottom: '0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
+            style={{ display: 'block', width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', margin: '0 auto 0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
           />
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
             OJT Tracker
@@ -181,7 +181,6 @@ export default function SignupPage() {
                 style={{
                   backgroundColor: 'rgba(242,63,66,0.08)',
                   border: '1px solid rgba(242,63,66,0.25)',
-                  borderLeft: '3px solid var(--error)',
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   color: 'var(--error)',

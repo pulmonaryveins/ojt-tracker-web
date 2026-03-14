@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GraduationCap, Building2, Clock3, CalendarDays, ChevronRight, Check, Sparkles } from 'lucide-react'
+import { GraduationCap, Building2, Clock3, ChevronRight, Check, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import { DatePicker } from '../components/ui/DatePicker'
@@ -13,9 +13,24 @@ const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuthStore((s) => ({ user: s.user, loading: s.loading }))
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
   const userId = user?.id ?? ''
-  const meta = user?.user_metadata ?? {}
+
+  // Step 1: Profile fields (pre-filled from signup metadata once user loads)
+  const [school, setSchool] = useState('')
+  const [yearLevel, setYearLevel] = useState('')
+  const [workplace, setWorkplace] = useState('')
+
+  // Pre-fill from user_metadata once auth resolves
+  useEffect(() => {
+    if (user?.user_metadata) {
+      const meta = user.user_metadata
+      if (meta.school) setSchool(meta.school)
+      if (meta.year_level) setYearLevel(meta.year_level)
+      if (meta.workplace) setWorkplace(meta.workplace)
+    }
+  }, [user])
 
   // When user explicitly navigates here, clear the skip flag so the page is fully accessible
   useEffect(() => {
@@ -23,11 +38,6 @@ export default function OnboardingPage() {
       localStorage.removeItem(`onboarding_done_${userId}`)
     }
   }, [userId])
-
-  // Step 1: Profile fields (pre-filled from signup metadata)
-  const [school, setSchool] = useState<string>(meta.school ?? '')
-  const [yearLevel, setYearLevel] = useState<string>(meta.year_level ?? '')
-  const [workplace, setWorkplace] = useState<string>(meta.workplace ?? '')
 
   // Step 2: OJT setup
   const [requiredHours, setRequiredHours] = useState('')
@@ -69,7 +79,7 @@ export default function OnboardingPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabase.from('profiles').upsert({
       user_id: userId,
-      full_name: meta.full_name ?? null,
+      full_name: user?.user_metadata?.full_name ?? null,
       school,
       year_level: yearLevel,
       workplace,
@@ -86,11 +96,11 @@ export default function OnboardingPage() {
       setError('Enter a valid number of required hours.')
       return
     }
-    if (!startDate || !endDate) {
-      setError('Please select both start and end dates.')
+    if (!startDate) {
+      setError('Please select a start date.')
       return
     }
-    if (endDate <= startDate) {
+    if (endDate && endDate <= startDate) {
       setError('End date must be after start date.')
       return
     }
@@ -168,10 +178,10 @@ export default function OnboardingPage() {
           <img
             src="/icon.png"
             alt="OJT Tracker"
-            style={{ width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', marginBottom: '0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
+            style={{ display: 'block', width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', margin: '0 auto 0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
           />
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
-            Welcome{meta.full_name ? `, ${meta.full_name.split(' ')[0]}` : ''}!
+            Welcome{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}!
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
             Let&apos;s set up your account in just 2 steps
@@ -318,20 +328,14 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
+                  <div className="onboarding-dates-grid">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Start Date *</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <CalendarDays size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                        <DatePicker value={startDate} onChange={setStartDate} placeholder="Start date" />
-                      </div>
+                      <DatePicker value={startDate} onChange={setStartDate} placeholder="Start date" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>End Date *</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <CalendarDays size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                        <DatePicker value={endDate} onChange={setEndDate} placeholder="End date" />
-                      </div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>End Date</label>
+                      <DatePicker value={endDate} onChange={setEndDate} placeholder="End date (optional)" />
                     </div>
                   </div>
                 </div>

@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
           <img
             src="/icon.png"
             alt="OJT Tracker"
-            style={{ width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', marginBottom: '0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
+            style={{ display: 'block', width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', margin: '0 auto 0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
           />
           <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
             OJT Tracker

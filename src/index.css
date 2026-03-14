@@ -262,6 +262,12 @@ select {
   gap: 0.5rem;
 }
 
+.onboarding-dates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
 @media (max-width: 600px) {
   /* Hide text labels in header action buttons */
   .page-header-actions .btn-label { display: none; }
@@ -296,6 +302,9 @@ select {
 
   /* Page header title slightly smaller */
   .page-header-text h1 { font-size: 1.125rem; }
+
+  /* Onboarding dates grid: stack on mobile */
+  .onboarding-dates-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ─── Print styles ─────────────────────────────────────────── */
