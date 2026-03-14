@@ -144,6 +144,119 @@ select {
   from { width: 0; }
 }
 
+/* ─── Mobile responsive utilities ─────────────────────────── */
+
+/* Page header: icon + title + action buttons */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-header-text h1 {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.page-header-text p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.page-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Hide button labels on small screens, keep icons */
+.btn-label { display: inline; }
+
+/* Responsive grids */
+.grid-3-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.875rem; }
+.grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+
+/* Logs stats grid: 3–4 cols desktop, 2×2 on mobile */
+.logs-stats-grid { display: grid; gap: 0.75rem; }
+
+/* Calendar day headers: show 3-letter on desktop, 1-letter on mobile */
+.cal-day-short { display: none; }
+.cal-day-full  { display: inline; }
+
+/* Earnings banner: side-by-side desktop, stacked mobile */
+.earnings-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.earnings-banner-formula { font-size: 0.75rem; color: var(--text-muted); }
+.earnings-banner-total { font-size: 1rem; font-weight: 800; color: var(--success); }
+
+/* Session detail / new session top nav bar */
+.detail-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.detail-topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  /* Hide text labels in header action buttons */
+  .page-header-actions .btn-label { display: none; }
+  .page-header-actions a,
+  .page-header-actions button {
+    padding: 0.5rem 0.625rem !important;
+  }
+
+  /* Collapse 3-col to 1-col */
+  .grid-3-col { grid-template-columns: 1fr !important; }
+
+  /* Collapse 2-col to 1-col */
+  .grid-2-col { grid-template-columns: 1fr !important; }
+
+  /* Logs stats: 2×2 on mobile */
+  .logs-stats-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Earnings banner: stack label and amount */
+  .earnings-banner { flex-direction: column; align-items: flex-start; }
+  .earnings-banner-formula { display: none; }
+
+  /* Calendar: switch to short day labels */
+  .cal-day-full  { display: none; }
+  .cal-day-short { display: inline; }
+
+  /* Detail page topbar - hide link text, keep icon */
+  .detail-topbar .btn-label { display: none; }
+  .detail-topbar-actions button,
+  .detail-topbar-actions a {
+    padding: 0.5rem 0.625rem !important;
+  }
+
+  /* Page header title slightly smaller */
+  .page-header-text h1 { font-size: 1.125rem; }
+}
+
 /* ─── Print styles ─────────────────────────────────────────── */
 .print-only { display: none; }
 

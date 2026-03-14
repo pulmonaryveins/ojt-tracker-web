@@ -479,7 +479,7 @@ export default function ReportsPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
     >
       {/* ── Page Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div className="page-header">
         <div style={{
           width: '40px', height: '40px', borderRadius: '0.625rem',
           backgroundColor: 'var(--accent-light)',
@@ -487,13 +487,11 @@ export default function ReportsPage() {
         }}>
           <FileText size={20} style={{ color: 'var(--accent)' }} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Reports</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-            Analyze and export your OJT session data
-          </p>
+        <div className="page-header-text">
+          <h1>Reports</h1>
+          <p>Analyze and export your OJT session data</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+        <div className="page-header-actions">
           <button
             onClick={exportCSV}
             style={{
@@ -503,7 +501,7 @@ export default function ReportsPage() {
               borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600,
             }}
           >
-            <Download size={14} /> Save as CSV
+            <Download size={14} /> <span className="btn-label">Save as CSV</span>
           </button>
           <button
             onClick={exportPDF}
@@ -514,7 +512,7 @@ export default function ReportsPage() {
               fontSize: '0.875rem', fontWeight: 700,
             }}
           >
-            <FileDown size={14} /> Save as PDF
+            <FileDown size={14} /> <span className="btn-label">Save as PDF</span>
           </button>
         </div>
       </div>

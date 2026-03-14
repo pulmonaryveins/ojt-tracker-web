@@ -2,19 +2,28 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday } from 'date-fns'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
+import { supabase } from '../lib/supabase'
 import { formatTime12h } from '../utils/timeUtils'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import type { Session } from '../types/database'
+import type { Session, PaySetup } from '../types/database'
+
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`
+  }
+}
 
 const PAGE_SIZE = 10
 
 type ViewMode = 'list' | 'calendar'
 
-function CalendarView({ userId }: { userId: string }) {
+function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetup | null }) {
   const [calendarDate, setCalendarDate] = useState(new Date())
   const year = calendarDate.getFullYear()
   const month = calendarDate.getMonth() + 1
@@ -30,6 +39,13 @@ function CalendarView({ userId }: { userId: string }) {
     return acc
   }, {})
 
+  const earningsEnabled = paySetup?.is_enabled === true
+  const hourlyRate = paySetup?.hourly_rate ?? 0
+  const currency = paySetup?.currency ?? 'PHP'
+
+  const monthlyHours = sessions.reduce((sum, s) => sum + (s.total_hours ?? 0), 0)
+  const monthlyEarnings = earningsEnabled ? monthlyHours * hourlyRate : 0
+
   const firstDay = startOfMonth(calendarDate)
   const lastDay = endOfMonth(calendarDate)
   const days = eachDayOfInterval({ start: firstDay, end: lastDay })
@@ -38,7 +54,8 @@ function CalendarView({ userId }: { userId: string }) {
   const prevMonth = () => setCalendarDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
   const nextMonth = () => setCalendarDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
 
-  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const DAYS_FULL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const DAYS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
   return (
     <div>
@@ -55,15 +72,36 @@ function CalendarView({ userId }: { userId: string }) {
         </button>
       </div>
 
+      {/* Monthly earnings summary */}
+      {earningsEnabled && !isLoading && (
+        <div className="earnings-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DollarSign size={15} style={{ color: 'var(--success)' }} />
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {format(calendarDate, 'MMMM yyyy')} Earnings
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span className="earnings-banner-formula">
+              {monthlyHours.toFixed(1)}h × {formatCurrency(hourlyRate, currency)}/hr
+            </span>
+            <span className="earnings-banner-total">
+              {formatCurrency(monthlyEarnings, currency)}
+            </span>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <SkeletonCard lines={5} />
       ) : (
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
           {/* Day headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-            {DAYS.map((d) => (
-              <div key={d} style={{ padding: '0.625rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid var(--border)' }}>
-                {d}
+            {DAYS_FULL.map((d, i) => (
+              <div key={d} style={{ padding: '0.625rem 0.25rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid var(--border)' }}>
+                <span className="cal-day-full">{d}</span>
+                <span className="cal-day-short">{DAYS_SHORT[i]}</span>
               </div>
             ))}
           </div>
@@ -72,7 +110,7 @@ function CalendarView({ userId }: { userId: string }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {/* Empty cells before first day */}
             {Array.from({ length: startOffset }).map((_, i) => (
-              <div key={`empty-${i}`} style={{ minHeight: '72px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
+              <div key={`empty-${i}`} style={{ minHeight: earningsEnabled ? '88px' : '72px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
             ))}
 
             {days.map((day, idx) => {
@@ -86,7 +124,7 @@ function CalendarView({ userId }: { userId: string }) {
                 <div
                   key={dateStr}
                   style={{
-                    minHeight: '72px',
+                    minHeight: earningsEnabled ? '88px' : '72px',
                     borderRight: colIdx < 6 ? '1px solid var(--border)' : 'none',
                     borderBottom: '1px solid var(--border)',
                     padding: '0.375rem',
@@ -115,16 +153,34 @@ function CalendarView({ userId }: { userId: string }) {
                     {format(day, 'd')}
                   </div>
                   {session && (
-                    <div style={{
-                      backgroundColor: 'var(--accent)',
-                      borderRadius: '4px',
-                      padding: '0.1875rem 0.375rem',
-                      fontSize: '0.6875rem',
-                      fontWeight: 700,
-                      color: 'white',
-                      textAlign: 'center',
-                    }}>
-                      {session.total_hours.toFixed(1)}h
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1875rem' }}>
+                      <div style={{
+                        backgroundColor: 'var(--accent)',
+                        borderRadius: '4px',
+                        padding: '0.1875rem 0.375rem',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        color: 'white',
+                        textAlign: 'center',
+                      }}>
+                        {session.total_hours.toFixed(1)}h
+                      </div>
+                      {earningsEnabled && (
+                        <div style={{
+                          backgroundColor: 'rgba(35,165,90,0.15)',
+                          borderRadius: '4px',
+                          padding: '0.1875rem 0.375rem',
+                          fontSize: '0.625rem',
+                          fontWeight: 700,
+                          color: 'var(--success)',
+                          textAlign: 'center',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {formatCurrency(session.total_hours * hourlyRate, currency)}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -145,6 +201,15 @@ export default function LogsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
   const offset = page * PAGE_SIZE
+
+  const { data: paySetup } = useQuery({
+    queryKey: ['paySetup', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('pay_setup').select('*').eq('user_id', userId).single()
+      return data as PaySetup | null
+    },
+    enabled: !!userId,
+  })
 
   const { data: allSessions } = useQuery({
     queryKey: ['allSessions', userId],
@@ -176,6 +241,9 @@ export default function LogsPage() {
   const totalDays = new Set(allData.map((s) => s.date)).size
   const avgDay = totalDays > 0 ? totalHours / totalDays : 0
 
+  const earningsEnabled = paySetup?.is_enabled === true
+  const totalEarnings = earningsEnabled ? totalHours * (paySetup?.hourly_rate ?? 0) : 0
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -184,7 +252,7 @@ export default function LogsPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div className="page-header">
         <div style={{
           width: '40px', height: '40px', borderRadius: '0.625rem',
           backgroundColor: 'var(--accent-light)',
@@ -192,13 +260,11 @@ export default function LogsPage() {
         }}>
           <BookOpen size={20} style={{ color: 'var(--accent)' }} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Logs</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-            Track and manage your OJT work history
-          </p>
+        <div className="page-header-text">
+          <h1>Logs</h1>
+          <p>Track and manage your OJT work history</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+        <div className="page-header-actions">
           <Link
             to="/logs/new"
             style={{
@@ -208,7 +274,7 @@ export default function LogsPage() {
               fontSize: '0.875rem', fontWeight: 700, textDecoration: 'none',
             }}
           >
-            <Plus size={15} /> New Session
+            <Plus size={15} /> <span className="btn-label">New Session</span>
           </Link>
           <Link
             to="/reports"
@@ -220,7 +286,7 @@ export default function LogsPage() {
               fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none',
             }}
           >
-            <FileDown size={15} /> Export
+            <FileDown size={15} /> <span className="btn-label">Export</span>
           </Link>
         </div>
       </div>
@@ -291,18 +357,19 @@ export default function LogsPage() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+      <div className="logs-stats-grid" style={{ gridTemplateColumns: `repeat(${earningsEnabled ? 4 : 3}, 1fr)` }}>
         {[
-          { icon: Clock, label: 'Total Hours', value: totalHours.toFixed(1), color: 'var(--accent)' },
+          { icon: Clock, label: 'Total Hours', value: totalHours.toFixed(1) + 'h', color: 'var(--accent)' },
           { icon: CalendarDays, label: 'Total Days', value: totalDays.toString(), color: 'var(--accent)' },
-          { icon: TrendingUp, label: 'Avg/Day', value: avgDay.toFixed(1), color: 'var(--accent)' },
+          { icon: TrendingUp, label: 'Avg/Day', value: avgDay.toFixed(1) + 'h', color: 'var(--accent)' },
+          ...(earningsEnabled ? [{ icon: DollarSign, label: 'Est. Earnings', value: formatCurrency(totalEarnings, paySetup?.currency ?? 'PHP'), color: 'var(--success)' }] : []),
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.875rem', textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
               <Icon size={14} style={{ color }} />
               <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
             </div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color }}>{value}</span>
+            <span style={{ fontSize: '1.125rem', fontWeight: 800, color }}>{value}</span>
           </div>
         ))}
       </div>
@@ -311,7 +378,7 @@ export default function LogsPage() {
       <AnimatePresence mode="wait">
         {viewMode === 'calendar' ? (
           <motion.div key="calendar" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <CalendarView userId={userId} />
+            <CalendarView userId={userId} paySetup={paySetup} />
           </motion.div>
         ) : (
           <motion.div key="list" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>

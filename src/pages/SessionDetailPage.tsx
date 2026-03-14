@@ -194,32 +194,31 @@ export default function SessionDetailPage() {
       />
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div className="detail-topbar">
         <Link to="/logs" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--text-secondary)', fontSize: '0.875rem', textDecoration: 'none' }}>
-          <ArrowLeft size={16} /> Back to Activity Logs
+          <ArrowLeft size={16} /> <span className="btn-label">Back to Activity Logs</span>
         </Link>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="detail-topbar-actions">
           {!isEditing ? (
             <>
               <button onClick={enterEditMode}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                <Pencil size={14} /> Edit
+                <Pencil size={14} /> <span className="btn-label">Edit</span>
               </button>
               <button onClick={() => setShowDeleteConfirm(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', backgroundColor: 'rgba(218,55,60,0.1)', border: '1px solid rgba(218,55,60,0.3)', color: 'var(--error)', padding: '0.5rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                <Trash2 size={14} /> Delete
+                <Trash2 size={14} /> <span className="btn-label">Delete</span>
               </button>
             </>
           ) : (
             <>
-              <button onClick={() => saveEdit()}
-                disabled={isSaving}
+              <button onClick={() => saveEdit()} disabled={isSaving}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, opacity: isSaving ? 0.7 : 1 }}>
-                <Check size={14} /> {isSaving ? 'Saving…' : 'Save Changes'}
+                <Check size={14} /> <span className="btn-label">{isSaving ? 'Saving…' : 'Save Changes'}</span>
               </button>
               <button onClick={() => setIsEditing(false)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '0.5rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                <X size={14} /> Cancel
+                <X size={14} /> <span className="btn-label">Cancel</span>
               </button>
             </>
           )}
@@ -256,7 +255,7 @@ export default function SessionDetailPage() {
             <Clock size={13} /> Time Information
           </h2>
           {isEditing ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.875rem' }}>
+            <div className="grid-3-col">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Date</label>
                 <DatePicker value={editDate} onChange={setEditDate}
@@ -274,7 +273,7 @@ export default function SessionDetailPage() {
               </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid-3-col" style={{ gap: '0.75rem' }}>
               {[
                 { label: 'Time In', value: formatTime12h(session.start_time) },
                 { label: 'Time Out', value: formatTime12h(session.end_time) },

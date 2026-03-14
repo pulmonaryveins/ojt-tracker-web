@@ -172,7 +172,7 @@ export default function NewSessionPage() {
         to="/logs"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.25rem', textDecoration: 'none' }}
       >
-        <ArrowLeft size={16} /> Back to Logs
+        <ArrowLeft size={16} /> <span>Back to Logs</span>
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
@@ -214,7 +214,7 @@ export default function NewSessionPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
           {/* Date + Time row */}
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', alignItems: 'end' }}>
+          <div className="grid-3-col" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem', gap: '1rem', alignItems: 'end' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date *</label>
               <DatePicker value={date} onChange={setDate} />
@@ -259,7 +259,7 @@ export default function NewSessionPage() {
           </div>
 
           {/* Breaks + Images side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
+          <div className="grid-2-col">
 
             {/* Breaks */}
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
