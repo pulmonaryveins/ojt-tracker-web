@@ -60,7 +60,7 @@ export default function ProfilePage() {
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single()
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle()
       return data as Profile | null
     },
     enabled: !!userId,
@@ -99,6 +99,28 @@ export default function ProfilePage() {
     }
   }, [ojtSetup])
 
+  // Auto-create profile from signup metadata when no profile exists yet
+  useEffect(() => {
+    if (!loadingProfile && profile === null && userId && user?.user_metadata) {
+      const meta = user.user_metadata
+      if (meta.full_name || meta.school || meta.workplace) {
+        supabase.from('profiles')
+          .upsert({
+            user_id: userId,
+            full_name: meta.full_name ?? null,
+            school: meta.school ?? null,
+            year_level: meta.year_level ?? null,
+            workplace: meta.workplace ?? null,
+            profile_picture_url: null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any, { onConflict: 'user_id' })
+          .then(({ error }) => {
+            if (!error) queryClient.invalidateQueries({ queryKey: ['profile', userId] })
+          })
+      }
+    }
+  }, [loadingProfile, profile, userId, user, queryClient])
+
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -122,9 +144,9 @@ export default function ProfilePage() {
       if (avatarFile) pictureUrl = await uploadAvatar()
       const updates = { full_name: fullName, school, year_level: yearLevel, workplace, profile_picture_url: pictureUrl }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = profile
-        ? await supabase.from('profiles').update(updates as any).eq('user_id', userId)
-        : await supabase.from('profiles').insert({ user_id: userId, ...updates } as any)
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ user_id: userId, ...updates } as any, { onConflict: 'user_id' })
       if (error) throw error
     },
     onSuccess: () => {
@@ -660,3 +682,4 @@ export default function ProfilePage() {
     </motion.div>
   )
 }
+  

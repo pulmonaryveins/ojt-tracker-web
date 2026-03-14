@@ -28,7 +28,14 @@ export default function SignupPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          school,
+          year_level: yearLevel,
+          workplace: companyName,
+        },
+      },
     })
 
     if (signUpError) {
@@ -38,15 +45,18 @@ export default function SignupPage() {
     }
 
     if (data.user) {
+      // Best-effort insert — works when email confirmation is off (session exists immediately).
+      // When email confirmation is required, this may fail due to RLS (no active session).
+      // ProfilePage handles that case by reading user_metadata on first login.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await supabase.from('profiles').insert({
+      await supabase.from('profiles').upsert({
         user_id: data.user.id,
         full_name: fullName,
         school,
         year_level: yearLevel,
         workplace: companyName,
         profile_picture_url: null,
-      } as any)
+      } as any, { onConflict: 'user_id' })
     }
 
     setSuccess(true)

@@ -207,6 +207,14 @@ select {
 .earnings-banner-formula { font-size: 0.75rem; color: var(--text-muted); }
 .earnings-banner-total { font-size: 1rem; font-weight: 800; color: var(--success); }
 
+/* Text clamping */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Session detail / new session top nav bar */
 .detail-topbar {
   display: flex;

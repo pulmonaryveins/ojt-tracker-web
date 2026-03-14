@@ -42,7 +42,7 @@ export default function Sidebar() {
         .from('profiles')
         .select('full_name, profile_picture_url')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
       return data as { full_name: string | null; profile_picture_url: string | null } | null
     },
     enabled: !!userId,

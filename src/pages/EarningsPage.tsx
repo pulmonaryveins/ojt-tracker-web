@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   DollarSign, TrendingUp, Wallet, CalendarDays, Check, Loader2,
-  ChevronDown, ChevronUp, X, Banknote,
+  ChevronDown, ChevronUp, X, Banknote, Clock, Filter,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
@@ -12,24 +12,139 @@ import { formatHours } from '../utils/timeUtils'
 import { DatePicker } from '../components/ui/DatePicker'
 import { useToast } from '../components/ui/Toast'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import type { PaySetup, OjtSetup } from '../types/database'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import type { PaySetup } from '../types/database'
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns'
 
-const CURRENCIES = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AUD', 'CAD']
 const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`
 
 function formatCurrency(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
   } catch {
     return `${currency} ${amount.toFixed(2)}`
   }
 }
 
+function shortAmount(amount: number): string {
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(1)}K`
+  return amount.toFixed(0)
+}
+
+// ── Monthly Bar Chart ──────────────────────────────────────────────
+function MonthlyChart({
+  sessions,
+  rate,
+  currency,
+}: {
+  sessions: Array<{ date: string; total_hours: number }>
+  rate: number
+  currency: string
+}) {
+  const currentMonth = format(new Date(), 'yyyy-MM')
+
+  const monthlyData = useMemo(() => {
+    const months: string[] = []
+    for (let i = 5; i >= 0; i--) months.push(format(subMonths(new Date(), i), 'yyyy-MM'))
+    const map: Record<string, number> = {}
+    months.forEach((m) => { map[m] = 0 })
+    sessions.forEach((s) => {
+      const key = s.date.slice(0, 7)
+      if (key in map) map[key] += s.total_hours * rate
+    })
+    return months.map((m) => ({ month: m, earnings: map[m] }))
+  }, [sessions, rate])
+
+  const maxEarnings = Math.max(...monthlyData.map((d) => d.earnings), 1)
+  const W = 600
+  const H = 180
+  const PAD_TOP = 36
+  const PAD_BOT = 36
+  const PAD_H = 16
+  const chartH = H - PAD_TOP - PAD_BOT
+  const slotW = (W - PAD_H * 2) / monthlyData.length
+  const barW = Math.min(slotW * 0.52, 56)
+
+  const hasAnyData = monthlyData.some((d) => d.earnings > 0)
+
+  if (!hasAnyData) {
+    return (
+      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        No earnings data for the last 6 months yet.
+      </div>
+    )
+  }
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      {/* Baseline */}
+      <line
+        x1={PAD_H} y1={PAD_TOP + chartH}
+        x2={W - PAD_H} y2={PAD_TOP + chartH}
+        style={{ stroke: 'var(--border)', strokeWidth: 1 }}
+      />
+
+      {monthlyData.map((d, i) => {
+        const barH = d.earnings > 0 ? Math.max((d.earnings / maxEarnings) * chartH, 6) : 0
+        const cx = PAD_H + slotW * i + slotW / 2
+        const barY = PAD_TOP + chartH - barH
+        const isCurrent = d.month === currentMonth
+
+        return (
+          <g key={d.month}>
+            {/* Bar */}
+            {barH > 0 && (
+              <rect
+                x={cx - barW / 2} y={barY}
+                width={barW} height={barH}
+                rx={5}
+                style={{ fill: isCurrent ? 'var(--accent)' : 'var(--accent-light)' }}
+              />
+            )}
+            {/* Value label above bar */}
+            {d.earnings > 0 && (
+              <text
+                x={cx} y={barY - 7}
+                textAnchor="middle"
+                style={{ fontSize: '9.5px', fontFamily: 'inherit', fontWeight: 600, fill: 'var(--text-secondary)' } as React.CSSProperties}
+              >
+                {shortAmount(d.earnings)}
+              </text>
+            )}
+            {/* Month label */}
+            <text
+              x={cx} y={H - 8}
+              textAnchor="middle"
+              style={{
+                fontSize: '11px', fontFamily: 'inherit', fontWeight: isCurrent ? 700 : 400,
+                fill: isCurrent ? 'var(--accent)' : 'var(--text-muted)',
+              } as React.CSSProperties}
+            >
+              {format(new Date(d.month + '-01T12:00:00'), 'MMM')}
+            </text>
+            {/* Zero marker for empty months */}
+            {d.earnings === 0 && (
+              <circle cx={cx} cy={PAD_TOP + chartH} r={2.5} style={{ fill: 'var(--border)' }} />
+            )}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// ── Filter period type ─────────────────────────────────────────────
+type FilterPeriod = 'all' | '1m' | '3m' | '6m' | 'ytd'
+
+const FILTER_LABELS: { key: FilterPeriod; label: string }[] = [
+  { key: 'all', label: 'All Time' },
+  { key: '1m', label: 'This Month' },
+  { key: '3m', label: 'Last 3M' },
+  { key: '6m', label: 'Last 6M' },
+  { key: 'ytd', label: 'This Year' },
+]
+
+// ── Main Page ──────────────────────────────────────────────────────
 export default function EarningsPage() {
   const user = useAuthStore((s) => s.user)
   const userId = user?.id ?? ''
@@ -37,9 +152,9 @@ export default function EarningsPage() {
   const { toast } = useToast()
 
   const [hourlyRate, setHourlyRate] = useState('')
-  const [currency, setCurrency] = useState('PHP')
   const [effectiveDate, setEffectiveDate] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all')
 
   const { data: paySetup, isLoading: loadingPay } = useQuery({
     queryKey: ['paySetup', userId],
@@ -62,19 +177,9 @@ export default function EarningsPage() {
     enabled: !!userId,
   })
 
-  const { data: ojtSetup } = useQuery({
-    queryKey: ['ojtSetup', userId],
-    queryFn: async () => {
-      const { data } = await supabase.from('ojt_setup').select('*').eq('user_id', userId).single()
-      return data as OjtSetup | null
-    },
-    enabled: !!userId,
-  })
-
   useEffect(() => {
     if (paySetup) {
       setHourlyRate(paySetup.hourly_rate?.toString() ?? '')
-      setCurrency(paySetup.currency ?? 'PHP')
       setEffectiveDate(paySetup.effective_date ?? '')
     }
   }, [paySetup])
@@ -83,13 +188,7 @@ export default function EarningsPage() {
     mutationFn: async () => {
       const rate = parseFloat(hourlyRate)
       if (isNaN(rate) || rate <= 0) throw new Error('Please enter a valid hourly rate.')
-      const payData = {
-        user_id: userId,
-        is_enabled: true,
-        hourly_rate: rate,
-        currency,
-        effective_date: effectiveDate || null,
-      }
+      const payData = { user_id: userId, is_enabled: true, hourly_rate: rate, currency: 'PHP', effective_date: effectiveDate || null }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = paySetup
         ? await supabase.from('pay_setup').update(payData as any).eq('user_id', userId)
@@ -128,11 +227,24 @@ export default function EarningsPage() {
 
   const isEnabled = !!paySetup?.is_enabled
   const rate = isEnabled ? (paySetup?.hourly_rate ?? 0) : 0
-  const curr = paySetup?.currency ?? currency
+  const curr = 'PHP'
   const totalEarned = totalHours * rate
   const thisMonthEarned = thisMonthHours * rate
-  const remainingHours = Math.max(0, (ojtSetup?.required_hours ?? 0) - totalHours)
-  const projectedEarned = remainingHours * rate
+
+  // Filtered sessions for breakdown table
+  const filteredSessions = useMemo(() => {
+    if (filterPeriod === 'all') return sessions
+    let startDate: string
+    if (filterPeriod === '1m') startDate = format(startOfMonth(now), 'yyyy-MM-dd')
+    else if (filterPeriod === '3m') startDate = format(startOfMonth(subMonths(now, 2)), 'yyyy-MM-dd')
+    else if (filterPeriod === '6m') startDate = format(startOfMonth(subMonths(now, 5)), 'yyyy-MM-dd')
+    else startDate = format(startOfYear(now), 'yyyy-MM-dd')
+    return sessions.filter((s) => s.date >= startDate)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions, filterPeriod])
+
+  const filteredEarnings = filteredSessions.reduce((sum, s) => sum + s.total_hours * rate, 0)
+  const filteredHours = filteredSessions.reduce((sum, s) => sum + s.total_hours, 0)
 
   const inputBase: React.CSSProperties = {
     backgroundColor: 'var(--bg-secondary)',
@@ -146,14 +258,6 @@ export default function EarningsPage() {
     transition: 'border-color 150ms, box-shadow 150ms',
     fontFamily: 'inherit',
   }
-  const selectBase: React.CSSProperties = {
-    ...inputBase,
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2380848e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 0.75rem center',
-    paddingRight: '2.5rem',
-  }
 
   function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
     e.target.style.borderColor = 'var(--accent)'
@@ -166,7 +270,7 @@ export default function EarningsPage() {
 
   if (loadingPay) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <SkeletonCard lines={5} />
       </motion.div>
     )
@@ -182,7 +286,7 @@ export default function EarningsPage() {
       <style>{spinStyle}</style>
 
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="page-header">
         <div style={{
           width: '40px', height: '40px', borderRadius: '0.625rem',
           backgroundColor: 'var(--accent-light)',
@@ -190,181 +294,249 @@ export default function EarningsPage() {
         }}>
           <DollarSign size={20} style={{ color: 'var(--accent)' }} />
         </div>
-        <div>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Earnings</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-            Track your estimated pay based on logged OJT hours
-          </p>
+        <div className="page-header-text">
+          <h1>Earnings</h1>
+          <p>Track your estimated pay based on logged OJT hours</p>
         </div>
       </div>
 
       {!isEnabled ? (
-        /* ── Setup Card (not enabled) ── */
+        /* ── Setup Card ── */
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          {/* Hero */}
-          <div style={{
-            background: 'linear-gradient(135deg, var(--accent-light) 0%, transparent 100%)',
-            borderBottom: '1px solid var(--border)',
-            padding: '2rem 1.5rem',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '1rem',
-              backgroundColor: 'var(--accent)', margin: '0 auto 1rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px var(--accent-border)',
-            }}>
-              <Banknote size={30} color="white" />
+          {/* Header */}
+          <div style={{ padding: '2rem 1.75rem 1.625rem', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.875rem' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '0.875rem', backgroundColor: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Banknote size={24} style={{ color: 'var(--accent)' }} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem' }}>
-              Track Your Earnings
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0 auto', maxWidth: '380px', lineHeight: 1.6 }}>
-              Set your hourly rate and automatically estimate your earnings from logged OJT hours. Completely optional — turn it on or off anytime.
-            </p>
+            <div>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.375rem' }}>
+                Track Your Earnings
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0, maxWidth: '340px', lineHeight: 1.65 }}>
+                Enter your hourly rate to automatically estimate your earnings from logged OJT hours.
+              </p>
+            </div>
           </div>
 
-          {/* Setup Form */}
-          <div style={{ padding: '1.5rem' }}>
-            <form onSubmit={(e) => { e.preventDefault(); savePay() }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                    Hourly Rate
-                  </label>
-                  <div className="input-icon-wrapper">
-                    <DollarSign size={15} className="input-icon" />
-                    <input
-                      type="number" min="0" step="0.01"
-                      value={hourlyRate}
-                      onChange={(e) => setHourlyRate(e.target.value)}
-                      placeholder="e.g. 75.00"
-                      style={inputBase}
-                      onFocus={onFocus} onBlur={onBlur}
-                      required
-                    />
-                  </div>
+          {/* Feature list */}
+          <div style={{ padding: '1.125rem 1.75rem', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {[
+              'Calculated from your existing logged session hours',
+              'Monthly breakdown with a visual earnings chart',
+              'Turn off anytime — your data stays safe',
+            ].map((feat) => (
+              <div key={feat} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(35,165,90,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                  <Check size={10} style={{ color: 'var(--success)' }} />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                    Currency
-                  </label>
-                  <div className="input-icon-wrapper">
-                    <Wallet size={15} className="input-icon" />
-                    <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                      style={selectBase} onFocus={onFocus} onBlur={onBlur}>
-                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>{feat}</span>
               </div>
+            ))}
+          </div>
 
+          {/* Form */}
+          <div style={{ padding: '1.5rem 1.75rem' }}>
+            <form onSubmit={(e) => { e.preventDefault(); savePay() }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                  Effective Date{' '}
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                  Hourly Rate{' '}
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(₱ Philippine Peso)</span>
+                </label>
+                <div className="input-icon-wrapper">
+                  <DollarSign size={15} className="input-icon" />
+                  <input type="number" min="0" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="e.g. 75.00" style={inputBase} onFocus={onFocus} onBlur={onBlur} required />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
+                  Effective Date <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
                 </label>
                 <DatePicker value={effectiveDate} onChange={setEffectiveDate} placeholder="Select effective date" />
               </div>
-
-              <button
-                type="submit"
-                disabled={savingPay}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                  backgroundColor: 'var(--accent)', color: 'white',
-                  padding: '0.8125rem', borderRadius: '0.5rem',
-                  fontWeight: 700, fontSize: '0.9375rem',
-                  opacity: savingPay ? 0.75 : 1, transition: 'opacity 150ms',
-                }}
-              >
-                {savingPay
-                  ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Enabling…</>
-                  : <><Check size={16} /> Enable Pay Tracking</>}
+              <button type="submit" disabled={savingPay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', padding: '0.8125rem', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.9375rem', opacity: savingPay ? 0.75 : 1, transition: 'opacity 150ms' }}>
+                {savingPay ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Enabling…</> : <><Check size={16} /> Enable Pay Tracking</>}
               </button>
             </form>
           </div>
         </div>
       ) : (
-        /* ── Earnings Dashboard (enabled) ── */
+        /* ── Earnings Dashboard ── */
         <>
-          {/* Stat Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+          {/* Stat Cards (2 cards) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             {[
-              { label: 'Total Earned', value: formatCurrency(totalEarned, curr), icon: DollarSign, color: 'var(--accent)' },
-              { label: 'This Month', value: formatCurrency(thisMonthEarned, curr), icon: CalendarDays, color: 'var(--accent)' },
-              { label: 'Projected', value: formatCurrency(projectedEarned, curr), icon: TrendingUp, color: 'var(--accent)', hint: 'based on remaining OJT hours' },
-            ].map(({ label, value, icon: Icon, color }) => (
+              { label: 'Total Earned', value: formatCurrency(totalEarned, curr), sub: `${formatHours(totalHours)} logged`, icon: DollarSign, accent: true },
+              { label: 'This Month', value: formatCurrency(thisMonthEarned, curr), sub: `${formatHours(thisMonthHours)} this month`, icon: CalendarDays, accent: false },
+            ].map(({ label, value, sub, icon: Icon, accent }) => (
               <div key={label} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', backgroundColor: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={16} style={{ color }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', backgroundColor: accent ? 'var(--accent)' : 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={16} style={{ color: accent ? 'white' : 'var(--accent)' }} />
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
                 </div>
-                <div style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)' }}>{value}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{value}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sub}</div>
               </div>
             ))}
           </div>
 
           {/* Rate Info Badge */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent-border)',
-            borderRadius: '0.5rem', padding: '0.625rem 1rem',
-          }}>
-            <DollarSign size={14} style={{ color: 'var(--accent)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent-border)', borderRadius: '0.5rem', padding: '0.625rem 1rem' }}>
+            <DollarSign size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
             <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Rate: <strong style={{ color: 'var(--accent)' }}>{formatCurrency(rate, curr)}/hr</strong>
-              {' · '}{formatHours(totalHours)} logged
               {paySetup?.effective_date && (
                 <> · Effective {format(new Date(paySetup.effective_date + 'T00:00:00'), 'MMM d, yyyy')}</>
               )}
             </span>
           </div>
 
+          {/* Monthly Chart */}
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.125rem' }}>Monthly Earnings</h2>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Last 6 months</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <TrendingUp size={13} style={{ color: 'var(--accent)' }} />
+                <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{formatCurrency(totalEarned, curr)}</span>
+                <span>total</span>
+              </div>
+            </div>
+            <div style={{ padding: '1rem 1.25rem 0.75rem' }}>
+              <MonthlyChart sessions={sessions} rate={rate} currency={curr} />
+            </div>
+          </div>
+
           {/* Session Earnings Breakdown */}
           <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            {/* Header with filters */}
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Session Earnings Breakdown</h2>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.125rem' }}>
+                    Session Breakdown
+                  </h2>
+                  {filteredSessions.length > 0 && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                      {filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''} · {formatHours(filteredHours)} · {formatCurrency(filteredEarnings, curr)}
+                    </p>
+                  )}
+                </div>
+                {/* Filter tabs */}
+                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                  <Filter size={13} style={{ color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.125rem', flexShrink: 0 }} />
+                  {FILTER_LABELS.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setFilterPeriod(key)}
+                      style={{
+                        padding: '0.3125rem 0.625rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        backgroundColor: filterPeriod === key ? 'var(--accent)' : 'var(--bg-modifier)',
+                        color: filterPeriod === key ? 'white' : 'var(--text-secondary)',
+                        border: filterPeriod === key ? 'none' : '1px solid var(--border)',
+                        transition: 'all 150ms',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            {sessions.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No sessions logged yet. Start logging sessions to see earnings here.
+
+            {/* Session list */}
+            {filteredSessions.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                {sessions.length === 0
+                  ? 'No sessions logged yet. Start logging sessions to see earnings here.'
+                  : 'No sessions in this period.'}
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--bg-modifier)' }}>
-                      {['Date', 'Hours', 'Earnings', 'Journal'].map((h) => (
-                        <th key={h} style={{ padding: '0.625rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessions.map((session, i) => (
-                      <tr key={session.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)', borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                          {format(new Date(session.date + 'T00:00:00'), 'MMM d, yyyy')}
-                        </td>
-                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>
-                          {formatHours(session.total_hours)}
-                        </td>
-                        <td style={{ padding: '0.75rem 1rem' }}>
-                          <span style={{ backgroundColor: 'rgba(35,165,90,0.12)', color: 'var(--success)', borderRadius: '9999px', padding: '0.125rem 0.625rem', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                            {formatCurrency(session.total_hours * rate, curr)}
+              <div>
+                {filteredSessions.map((session, i) => {
+                  const sessionDate = new Date(session.date + 'T00:00:00')
+                  const earned = session.total_hours * rate
+                  const journalText = session.journal || session.description || ''
+
+                  return (
+                    <div
+                      key={session.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '52px 1fr auto',
+                        gap: '0.875rem',
+                        alignItems: 'start',
+                        padding: '0.875rem 1.25rem',
+                        borderBottom: i < filteredSessions.length - 1 ? '1px solid var(--border)' : 'none',
+                        backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)',
+                        transition: 'background-color 150ms',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)' }}
+                    >
+                      {/* Date badge */}
+                      <div style={{
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.5rem',
+                        padding: '0.375rem 0.25rem',
+                        textAlign: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                          {format(sessionDate, 'd')}
+                        </div>
+                        <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: '0.125rem', lineHeight: 1 }}>
+                          {format(sessionDate, 'MMM')}
+                        </div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1, marginTop: '0.0625rem' }}>
+                          {format(sessionDate, 'yyyy')}
+                        </div>
+                      </div>
+
+                      {/* Session details */}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: journalText ? '0.375rem' : 0 }}>
+                          <Clock size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {formatHours(session.total_hours)}
                           </span>
-                        </td>
-                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {session.journal ? session.journal.slice(0, 60) : (session.description ?? '—')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        {journalText && (
+                          <p
+                            className="line-clamp-2"
+                            title={journalText}
+                            style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.55 }}
+                          >
+                            {journalText}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Earnings badge */}
+                      <div style={{
+                        backgroundColor: 'rgba(35,165,90,0.1)',
+                        border: '1px solid rgba(35,165,90,0.2)',
+                        borderRadius: '0.5rem',
+                        padding: '0.375rem 0.625rem',
+                        textAlign: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap' }}>
+                          {formatCurrency(earned, curr)}
+                        </div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--success)', opacity: 0.7, marginTop: '0.0625rem' }}>earned</div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -374,93 +546,39 @@ export default function EarningsPage() {
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '1rem 1.25rem', cursor: 'pointer',
-                borderBottom: showSettings ? '1px solid var(--border)' : 'none',
-              }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', borderBottom: showSettings ? '1px solid var(--border)' : 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <Wallet size={16} style={{ color: 'var(--accent)' }} />
                 <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>Pay Settings</span>
               </div>
-              {showSettings
-                ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} />
-                : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+              {showSettings ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
             </button>
 
             {showSettings && (
               <div style={{ padding: '1.25rem' }}>
                 <form onSubmit={(e) => { e.preventDefault(); savePay() }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                        Hourly Rate
-                      </label>
-                      <div className="input-icon-wrapper">
-                        <DollarSign size={15} className="input-icon" />
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={hourlyRate}
-                          onChange={(e) => setHourlyRate(e.target.value)}
-                          placeholder="e.g. 75.00"
-                          style={inputBase}
-                          onFocus={onFocus} onBlur={onBlur}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                        Currency
-                      </label>
-                      <div className="input-icon-wrapper">
-                        <Wallet size={15} className="input-icon" />
-                        <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                          style={selectBase} onFocus={onFocus} onBlur={onBlur}>
-                          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
-                      Effective Date{' '}
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                      Hourly Rate{' '}
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(₱ Philippine Peso)</span>
+                    </label>
+                    <div className="input-icon-wrapper">
+                      <DollarSign size={15} className="input-icon" />
+                      <input type="number" min="0" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="e.g. 75.00" style={inputBase} onFocus={onFocus} onBlur={onBlur} required />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.375rem' }}>
+                      Effective Date <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
                     </label>
                     <DatePicker value={effectiveDate} onChange={setEffectiveDate} placeholder="Select effective date" />
                   </div>
-
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <button
-                      type="submit"
-                      disabled={savingPay}
-                      style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                        backgroundColor: 'var(--accent)', color: 'white',
-                        padding: '0.75rem', borderRadius: '0.5rem',
-                        fontWeight: 700, fontSize: '0.9375rem',
-                        opacity: savingPay ? 0.75 : 1, transition: 'opacity 150ms',
-                      }}
-                    >
-                      {savingPay
-                        ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</>
-                        : <><Check size={16} /> Save Changes</>}
+                    <button type="submit" disabled={savingPay} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', padding: '0.75rem', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.9375rem', opacity: savingPay ? 0.75 : 1, transition: 'opacity 150ms' }}>
+                      {savingPay ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : <><Check size={16} /> Save Changes</>}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => disablePay()}
-                      disabled={disablingPay}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
-                        backgroundColor: 'rgba(218,55,60,0.1)', color: 'var(--error)',
-                        border: '1px solid rgba(218,55,60,0.3)',
-                        padding: '0.75rem 1.125rem', borderRadius: '0.5rem',
-                        fontWeight: 600, fontSize: '0.875rem',
-                        opacity: disablingPay ? 0.75 : 1, transition: 'opacity 150ms',
-                      }}
-                    >
+                    <button type="button" onClick={() => disablePay()} disabled={disablingPay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'rgba(218,55,60,0.1)', color: 'var(--error)', border: '1px solid rgba(218,55,60,0.3)', padding: '0.75rem 1.125rem', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', opacity: disablingPay ? 0.75 : 1, transition: 'opacity 150ms' }}>
                       <X size={15} /> Disable
                     </button>
                   </div>
