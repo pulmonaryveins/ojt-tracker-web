@@ -118,7 +118,6 @@ export default function DashboardPage() {
           style={{
             backgroundColor: 'var(--accent-light)',
             border: '1px solid var(--accent-border)',
-            borderLeft: '4px solid var(--accent)',
             borderRadius: '0.75rem',
             padding: '1.25rem 1.5rem',
             display: 'flex',
@@ -180,14 +179,12 @@ export default function DashboardPage() {
       {loadingHours ? (
         <SkeletonCard lines={4} />
       ) : (
-        <div style={
-          {
-            background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--bg-card) 60%)',
-            border: '1px solid var(--accent-border)',
-            borderRadius: '0.75rem',
-            padding: '1.5rem',
-          }
-        }>
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--accent-border)',
+          borderRadius: '0.75rem',
+          padding: '1.5rem',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: '0.625rem',
@@ -241,17 +238,11 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       {loadingHours ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
-          {[0,1,2,3].map((i) => <SkeletonStatCard key={i} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {[0,1].map((i) => <SkeletonStatCard key={i} />)}
         </div>
-      ) : (
-        <motion.div
-          variants={listVariants}
-          initial="hidden"
-          animate="visible"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}
-        >
-          {[
+      ) : (() => {
+          const statCards = [
             { icon: CalendarDays, label: 'Days Attended', value: daysCount.toString(), color: 'var(--accent)' },
             { icon: TrendingUp, label: 'Avg / Day', value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—', color: 'var(--accent)' },
             ...(paySetup?.is_enabled ? [{
@@ -260,7 +251,16 @@ export default function DashboardPage() {
               value: formatCurrency(totalHours * paySetup.hourly_rate, paySetup.currency),
               color: 'var(--accent)',
             }] : []),
-          ].map(({ icon: Icon, label, value, color }) => (
+          ]
+          const isOdd = statCards.length % 2 !== 0
+          return (
+        <motion.div
+          variants={listVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+        >
+          {statCards.map(({ icon: Icon, label, value, color }, idx) => (
             <motion.div
               key={label}
               variants={itemVariants}
@@ -272,6 +272,7 @@ export default function DashboardPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.5rem',
+                ...(isOdd && idx === statCards.length - 1 ? { gridColumn: 'span 2' } : {}),
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -282,7 +283,8 @@ export default function DashboardPage() {
             </motion.div>
           ))}
         </motion.div>
-      )}
+          )
+        })()}
 
       {/* OJT Timeline + Estimated End Date */}
       {hasOjtSetup && ojtSetup && (

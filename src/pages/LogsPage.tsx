@@ -249,7 +249,7 @@ export default function LogsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
     >
       {/* Page Header */}
       <div className="page-header">

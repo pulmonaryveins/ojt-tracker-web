@@ -48,20 +48,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
-          right: '1rem',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          maxWidth: '360px',
-          width: 'calc(100vw - 2rem)',
-          pointerEvents: 'none',
-        }}
-      >
+      <style>{`
+        .toast-container {
+          position: fixed;
+          bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+          right: 1rem;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-width: 360px;
+          width: calc(100vw - 2rem);
+          pointer-events: none;
+        }
+        @media (min-width: 768px) {
+          .toast-container {
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 360px;
+          }
+        }
+      `}</style>
+      <div className="toast-container">
         <AnimatePresence>
           {toasts.map((t) => {
             const Icon = icons[t.type]
@@ -76,7 +84,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   border: `1px solid ${c.border}`,
-                  borderLeft: `4px solid ${c.text}`,
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   display: 'flex',

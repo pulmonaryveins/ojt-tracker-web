@@ -110,6 +110,39 @@ select {
 .auth-blob { animation: blob-float 8s ease-in-out infinite; }
 .auth-blob-2 { animation: blob-float 11s ease-in-out infinite reverse; }
 
+/* ─── Auth Split Layout ─────────────────────────────────────────── */
+.auth-split {
+  min-height: 100vh;
+  display: flex;
+}
+.auth-left {
+  flex: 0 0 44%;
+  background: var(--accent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.auth-right {
+  flex: 1;
+  background-color: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+.auth-mobile-logo { display: none; }
+
+@media (max-width: 768px) {
+  .auth-left { display: none; }
+  .auth-mobile-logo { display: block; }
+  .auth-right { padding: 1.5rem; }
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

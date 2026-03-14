@@ -6,7 +6,6 @@ import {
   FileText,
   User,
   LogOut,
-  Clock,
   DollarSign,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -79,20 +78,17 @@ export default function Sidebar() {
           marginBottom: '0.5rem',
         }}
       >
-        <div
+        <img
+          src="/icon.png"
+          alt="OJT Tracker"
           style={{
-            backgroundColor: 'var(--accent)',
-            borderRadius: '0.5rem',
             width: '30px',
             height: '30px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: '0.5rem',
+            objectFit: 'cover',
             flexShrink: 0,
           }}
-        >
-          <Clock size={16} color="white" />
-        </div>
+        />
         <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
           OJT Tracker
         </span>

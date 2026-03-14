@@ -11,6 +11,7 @@ import { useThemeStore, ACCENT_COLORS, type AccentColor, applyTheme } from '../s
 import { useToast } from '../components/ui/Toast'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { DatePicker } from '../components/ui/DatePicker'
+import Select from '../components/ui/Select'
 import { format } from 'date-fns'
 
 const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`
@@ -239,7 +240,7 @@ export default function ProfilePage() {
       transition={{ duration: 0.3 }}
     >
       <style>{spinStyle}{`
-        .profile-outer { display: flex; flex-direction: column; gap: 1rem; }
+        .profile-outer { display: flex; flex-direction: column; gap: 1.5rem; }
         .profile-side { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         @media (max-width: 600px) {
           .profile-side { grid-template-columns: 1fr; }
@@ -407,25 +408,13 @@ export default function ProfilePage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                       <div>
                         <FieldLabel text="Year Level" />
-                        <div className="input-icon-wrapper">
-                          <GraduationCap size={15} className="input-icon" />
-                          <select value={yearLevel} onChange={(e) => setYearLevel(e.target.value)}
-                            style={{
-                              ...inputBase,
-                              appearance: 'none',
-                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2380848e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                              backgroundRepeat: 'no-repeat',
-                              backgroundPosition: 'right 0.75rem center',
-                              paddingRight: '2.5rem',
-                            }}
-                            onFocus={onFocus} onBlur={onBlur}
-                          >
-                            <option value="">Select year</option>
-                            {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((y) => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <Select
+                          value={yearLevel}
+                          onChange={setYearLevel}
+                          placeholder="Select year"
+                          icon={<GraduationCap size={15} />}
+                          options={['1st Year', '2nd Year', '3rd Year', '4th Year'].map((y) => ({ value: y, label: y }))}
+                        />
                       </div>
                       <div>
                         <FieldLabel text="School" />

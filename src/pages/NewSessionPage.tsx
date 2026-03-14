@@ -197,7 +197,6 @@ export default function NewSessionPage() {
       <div style={{
         backgroundColor: 'var(--accent-light)',
         border: '1px solid var(--accent-border)',
-        borderLeft: '3px solid var(--accent)',
         borderRadius: '0.5rem',
         padding: '0.875rem 1rem',
         fontSize: '0.8125rem',
@@ -229,34 +228,45 @@ export default function NewSessionPage() {
             </div>
           </div>
 
-          {/* Use Average + Calculated hours row */}
-          <div style={{ display: 'grid', gridTemplateColumns: computedHours > 0 ? '1fr auto' : '1fr', gap: '1rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={useAverageSchedule}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                padding: '0.75rem',
-                backgroundColor: 'var(--accent-light)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: '0.5rem',
-                color: 'var(--accent)',
-                fontSize: '0.875rem', fontWeight: 700,
-                transition: 'background-color 150ms',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-border)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-light)' }}
-            >
-              <Sparkles size={16} /> Use Average Time
-              {avgSchedule?.avgTotalHours ? ` (avg ${avgSchedule.avgTotalHours}h)` : ''}
-            </button>
-            {computedHours > 0 && (
-              <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</span>
-                <span style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--accent)' }}>{computedHours.toFixed(2)}h</span>
-              </div>
-            )}
-          </div>
+          {/* Use Average button */}
+          <button
+            type="button"
+            onClick={useAverageSchedule}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              padding: '0.75rem',
+              backgroundColor: 'var(--accent-light)',
+              border: '1px solid var(--accent-border)',
+              borderRadius: '0.5rem',
+              color: 'var(--accent)',
+              fontSize: '0.875rem', fontWeight: 700,
+              transition: 'background-color 150ms',
+              width: '100%',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-border)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-light)' }}
+          >
+            <Sparkles size={16} /> Use Average Time
+            {avgSchedule?.avgTotalHours ? ` (avg ${avgSchedule.avgTotalHours}h)` : ''}
+          </button>
+
+          {/* Total hours card */}
+          {computedHours > 0 && (
+            <div style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '0.75rem',
+              padding: '1rem 1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+            }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Hours</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.02em' }}>{computedHours.toFixed(2)}h</span>
+            </div>
+          )}
 
           {/* Breaks + Images side by side */}
           <div className="grid-2-col">
@@ -360,7 +370,7 @@ export default function NewSessionPage() {
           </div>
 
           {/* Submit + Cancel */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <button type="submit" disabled={isPending}
               style={{ backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isPending ? 0.75 : 1, transition: 'opacity 150ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               {isPending ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : 'Save Manual Entry'}

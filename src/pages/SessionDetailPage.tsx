@@ -417,24 +417,24 @@ export default function SessionDetailPage() {
 
         {/* Bottom action row */}
         {isEditing ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <button onClick={() => saveEdit()} disabled={isSaving}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--success)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isSaving ? 0.7 : 1 }}>
               <Check size={16} /> {isSaving ? 'Saving…' : 'Save Changes'}
             </button>
             <button onClick={() => setIsEditing(false)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 600, fontSize: '0.875rem' }}>
               <X size={15} /> Cancel
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <button onClick={() => toast('PDF export coming soon!', 'info')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem' }}>
               <Download size={18} /> Export as PDF
             </button>
             <Link to="/logs"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem 1.25rem', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>
               <ArrowLeft size={16} /> Back to Logs
             </Link>
           </div>

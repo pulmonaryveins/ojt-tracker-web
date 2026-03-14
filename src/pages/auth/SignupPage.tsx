@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, Eye, EyeOff, Loader2, Mail, User, GraduationCap, Building2, Lock } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Mail, User, GraduationCap, Building2, Lock, BookOpen } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import Select from '../../components/ui/Select'
 
 const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`
 
@@ -66,90 +67,58 @@ export default function SignupPage() {
   const inputBase: React.CSSProperties = {
     backgroundColor: 'var(--bg-secondary)',
     border: '1px solid var(--border)',
-    borderRadius: '0.5rem',
-    padding: '0.75rem 1rem 0.75rem 2.5rem',
+    borderRadius: '0.625rem',
+    padding: '0.75rem 0.875rem 0.75rem 2.5rem',
     color: 'var(--text-primary)',
-    fontSize: '0.9375rem',
+    fontSize: '0.9rem',
     outline: 'none',
     width: '100%',
     transition: 'border-color 150ms, box-shadow 150ms',
   }
 
-  function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+  function onFocus(e: React.FocusEvent<HTMLInputElement>) {
     e.target.style.borderColor = 'var(--accent)'
     e.target.style.boxShadow = '0 0 0 3px var(--accent-light)'
   }
-  function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+  function onBlur(e: React.FocusEvent<HTMLInputElement>) {
     e.target.style.borderColor = 'var(--border)'
     e.target.style.boxShadow = 'none'
-  }
-
-  function Label({ text }: { text: string }) {
-    return (
-      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {text}
-      </label>
-    )
   }
 
   if (success) {
     return (
       <div style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-tertiary)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem',
-        position: 'relative',
-        overflow: 'hidden',
+        minHeight: '100vh', backgroundColor: 'var(--bg-tertiary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
       }}>
-        <div className="auth-blob" style={{
-          position: 'absolute', top: '-10%', left: '-10%',
-          width: '500px', height: '500px', borderRadius: '50%',
-          background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
-          opacity: 0.08, pointerEvents: 'none',
-        }} />
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '1rem',
-            padding: '3rem 2rem',
-            maxWidth: '420px',
-            width: '100%',
-            textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            position: 'relative', zIndex: 1,
-          }}
+          style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}
         >
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '64px', height: '64px', borderRadius: '50%',
-            backgroundColor: 'rgba(35,165,90,0.15)',
+            width: '68px', height: '68px', borderRadius: '50%',
+            backgroundColor: 'rgba(35,165,90,0.1)', border: '1px solid rgba(35,165,90,0.2)',
             marginBottom: '1.25rem',
           }}>
             <Mail size={32} style={{ color: 'var(--success)' }} />
           </div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem' }}>Check your email</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0 0 0.5rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+            Check your email
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0 0 0.375rem' }}>
             We sent a confirmation link to
           </p>
-          <p style={{ color: 'var(--accent)', fontWeight: 600, margin: '0 0 1.75rem' }}>{email}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 1.5rem' }}>
-            Click the link in the email to activate your account.
+          <p style={{ color: 'var(--accent)', fontWeight: 600, margin: '0 0 0.75rem' }}>{email}</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 2rem', lineHeight: 1.6 }}>
+            Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it.
           </p>
           <Link to="/login" style={{
-            display: 'inline-block',
-            padding: '0.75rem 1.5rem',
-            backgroundColor: 'var(--accent)',
-            color: 'white',
-            borderRadius: '0.5rem',
-            fontWeight: 700,
-            fontSize: '0.9375rem',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0.8125rem 2rem', backgroundColor: 'var(--accent)', color: 'white',
+            borderRadius: '0.625rem', fontWeight: 700, fontSize: '0.9375rem',
           }}>
             Back to Sign In
           </Link>
@@ -171,39 +140,30 @@ export default function SignupPage() {
     }}>
       <style>{spinStyle}</style>
 
-      <div className="auth-blob" style={{
-        position: 'absolute', top: '-10%', left: '-10%',
-        width: '500px', height: '500px', borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
-        opacity: 0.08, pointerEvents: 'none',
-      }} />
-      <div className="auth-blob-2" style={{
-        position: 'absolute', bottom: '-15%', right: '-10%',
-        width: '600px', height: '600px', borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--success) 0%, transparent 70%)',
-        opacity: 0.05, pointerEvents: 'none',
+      <div style={{
+        position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)',
+        width: '700px', height: '400px', borderRadius: '50%',
+        background: 'radial-gradient(ellipse, var(--accent) 0%, transparent 70%)',
+        opacity: 0.06, pointerEvents: 'none',
       }} />
 
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
         style={{ width: '100%', maxWidth: '460px', position: 'relative', zIndex: 1 }}
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '60px', height: '60px', borderRadius: '1.125rem',
-            backgroundColor: 'var(--accent)', marginBottom: '1rem',
-            boxShadow: '0 8px 24px var(--accent-border)',
-          }}>
-            <Clock size={30} color="white" />
-          </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
-            Create Account
+          <img
+            src="/icon.png"
+            alt="OJT Tracker"
+            style={{ width: '56px', height: '56px', borderRadius: '1rem', objectFit: 'cover', marginBottom: '0.875rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
+          />
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
+            OJT Tracker
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem' }}>Start tracking your OJT hours</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Create your account to get started</p>
         </div>
 
         {/* Card */}
@@ -211,18 +171,17 @@ export default function SignupPage() {
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: '1rem',
-          padding: '2rem',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          padding: '1.75rem',
         }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{
-                  backgroundColor: 'rgba(242,63,66,0.1)',
-                  border: '1px solid rgba(242,63,66,0.4)',
-                  borderLeft: '4px solid var(--error)',
+                  backgroundColor: 'rgba(242,63,66,0.08)',
+                  border: '1px solid rgba(242,63,66,0.25)',
+                  borderLeft: '3px solid var(--error)',
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   color: 'var(--error)',
@@ -233,98 +192,87 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* Full Name */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="Full Name *" />
-              <div className="input-icon-wrapper">
-                <User size={15} className="input-icon" />
-                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
-                  placeholder="Juan Dela Cruz" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+            {/* Row: Full Name + Year Level */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Full Name *
+                </label>
+                <div className="input-icon-wrapper">
+                  <User size={13} className="input-icon" />
+                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
+                    placeholder="Juan Dela Cruz" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Year Level *
+                </label>
+                <Select
+                  value={yearLevel}
+                  onChange={setYearLevel}
+                  placeholder="Select year"
+                  icon={<BookOpen size={13} />}
+                  options={YEAR_LEVELS.map((y) => ({ value: y, label: y }))}
+                  triggerStyle={{ fontSize: '0.9rem', borderRadius: '0.625rem' }}
+                />
               </div>
             </div>
 
             {/* Email */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="Email *" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Email *
+              </label>
               <div className="input-icon-wrapper">
-                <Mail size={15} className="input-icon" />
+                <Mail size={13} className="input-icon" />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                   placeholder="you@example.com" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
               </div>
             </div>
 
-            {/* School */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="School *" />
-              <div className="input-icon-wrapper">
-                <GraduationCap size={15} className="input-icon" />
-                <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} required
-                  placeholder="University of the Philippines" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+            {/* Row: School + Company */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  School *
+                </label>
+                <div className="input-icon-wrapper">
+                  <GraduationCap size={13} className="input-icon" />
+                  <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} required
+                    placeholder="UP Diliman" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+                </div>
               </div>
-            </div>
-
-            {/* Year Level */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="Year Level *" />
-              <div className="input-icon-wrapper">
-                <GraduationCap size={15} className="input-icon" />
-                <select
-                  value={yearLevel}
-                  onChange={(e) => setYearLevel(e.target.value)}
-                  required
-                  style={{
-                    ...inputBase,
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2380848e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 0.75rem center',
-                    paddingRight: '2.5rem',
-                    cursor: 'pointer',
-                  }}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
-                >
-                  <option value="">Select year level</option>
-                  {YEAR_LEVELS.map((y) => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Company Name */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="Company / Workplace *" />
-              <div className="input-icon-wrapper">
-                <Building2 size={15} className="input-icon" />
-                <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required
-                  placeholder="Acme Corp" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Company *
+                </label>
+                <div className="input-icon-wrapper">
+                  <Building2 size={13} className="input-icon" />
+                  <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required
+                    placeholder="Acme Corp" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+                </div>
               </div>
             </div>
 
             {/* Password */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Label text="Password *" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Password *
+              </label>
               <div className="input-icon-wrapper">
-                <Lock size={15} className="input-icon" />
+                <Lock size={13} className="input-icon" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  required minLength={6}
                   placeholder="At least 6 characters"
-                  style={{ ...inputBase, paddingRight: '2.75rem' }}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
+                  style={{ ...inputBase, padding: '0.75rem 2.75rem 0.75rem 2.5rem' }}
+                  onFocus={onFocus} onBlur={onBlur}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute', right: '0.75rem', top: '50%',
-                    transform: 'translateY(-50%)', color: 'var(--text-muted)',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
@@ -333,20 +281,12 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
               style={{
-                backgroundColor: 'var(--accent)',
-                color: 'white',
-                borderRadius: '0.5rem',
-                padding: '0.8125rem',
-                fontWeight: 700,
-                fontSize: '0.9375rem',
-                width: '100%',
-                marginTop: '0.25rem',
-                opacity: loading ? 0.75 : 1,
+                backgroundColor: 'var(--accent)', color: 'white',
+                borderRadius: '0.625rem', padding: '0.875rem',
+                fontWeight: 700, fontSize: '0.9375rem', width: '100%',
+                marginTop: '0.25rem', opacity: loading ? 0.75 : 1,
                 transition: 'opacity 150ms',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
               }}
             >
               {loading
