@@ -291,13 +291,13 @@ export default function EarningsPage() {
           {/* Stat Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
             {[
-              { label: 'Total Earned', value: formatCurrency(totalEarned, curr), icon: DollarSign, color: 'var(--success)' },
+              { label: 'Total Earned', value: formatCurrency(totalEarned, curr), icon: DollarSign, color: 'var(--accent)' },
               { label: 'This Month', value: formatCurrency(thisMonthEarned, curr), icon: CalendarDays, color: 'var(--accent)' },
-              { label: 'Projected', value: formatCurrency(projectedEarned, curr), icon: TrendingUp, color: 'var(--warning)', hint: 'based on remaining OJT hours' },
+              { label: 'Projected', value: formatCurrency(projectedEarned, curr), icon: TrendingUp, color: 'var(--accent)', hint: 'based on remaining OJT hours' },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', backgroundColor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', backgroundColor: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={16} style={{ color }} />
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
@@ -337,7 +337,7 @@ export default function EarningsPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: 'var(--bg-modifier)' }}>
-                      {['Date', 'Hours', 'Earnings', 'Notes'].map((h) => (
+                      {['Date', 'Hours', 'Earnings', 'Journal'].map((h) => (
                         <th key={h} style={{ padding: '0.625rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
                           {h}
                         </th>

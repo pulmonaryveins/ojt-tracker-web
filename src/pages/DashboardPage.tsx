@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, CalendarDays, TrendingUp, Target, Plus, FileText, Settings, Trophy, AlertCircle, LayoutDashboard, Sparkles, DollarSign } from 'lucide-react'
+import { CalendarDays, TrendingUp, Plus, FileText, Settings, Trophy, AlertCircle, LayoutDashboard, Sparkles, DollarSign } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
 import { supabase } from '../lib/supabase'
@@ -180,7 +180,14 @@ export default function DashboardPage() {
       {loadingHours ? (
         <SkeletonCard lines={4} />
       ) : (
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.5rem' }}>
+        <div style={
+          {
+            background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--bg-card) 60%)',
+            border: '1px solid var(--accent-border)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+          }
+        }>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: '0.625rem',
@@ -245,15 +252,13 @@ export default function DashboardPage() {
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}
         >
           {[
-            { icon: Clock, label: 'Total Hours', value: formatHours(totalHours), color: 'var(--accent)' },
-            { icon: Target, label: 'Remaining', value: formatHours(remainingHours), color: 'var(--warning)' },
-            { icon: CalendarDays, label: 'Days Attended', value: daysCount.toString(), color: 'var(--success)' },
-            { icon: TrendingUp, label: 'Avg / Day', value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—', color: 'var(--info)' },
+            { icon: CalendarDays, label: 'Days Attended', value: daysCount.toString(), color: 'var(--accent)' },
+            { icon: TrendingUp, label: 'Avg / Day', value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—', color: 'var(--accent)' },
             ...(paySetup?.is_enabled ? [{
               icon: DollarSign,
               label: 'Est. Earnings',
               value: formatCurrency(totalHours * paySetup.hourly_rate, paySetup.currency),
-              color: 'var(--success)',
+              color: 'var(--accent)',
             }] : []),
           ].map(({ icon: Icon, label, value, color }) => (
             <motion.div
@@ -327,9 +332,9 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           {[
             { to: '/logs/new', icon: Plus, label: 'Manual Entry', color: 'var(--accent)' },
-            { to: '/logs', icon: FileText, label: 'Activity Logs', color: 'var(--info)' },
-            { to: '/reports', icon: TrendingUp, label: 'View Reports', color: 'var(--success)' },
-            { to: '/profile', icon: Settings, label: 'OJT Setup', color: 'var(--warning)' },
+            { to: '/logs', icon: FileText, label: 'Activity Logs', color: 'var(--accent)' },
+            { to: '/reports', icon: TrendingUp, label: 'View Reports', color: 'var(--accent)' },
+            { to: '/profile', icon: Settings, label: 'OJT Setup', color: 'var(--accent)' },
           ].map(({ to, icon: Icon, label, color }) => (
             <Link
               key={label}

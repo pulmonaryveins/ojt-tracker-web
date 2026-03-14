@@ -465,10 +465,10 @@ export default function ReportsPage() {
 
   // ── Render ───────────────────────────────────────────────────────
   const statCards = [
-    { icon: Clock,       label: 'Total Hours',   value: formatHours(totalHours),                                 color: 'var(--accent)'  },
-    { icon: CalendarDays,label: 'Days Attended', value: uniqueDays.toString(),                                   color: 'var(--info)'    },
-    { icon: TrendingUp,  label: 'Avg / Day',     value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—',      color: 'var(--success)' },
-    { icon: BarChart3,   label: 'Sessions',      value: sessions.length.toString(),                              color: 'var(--warning)' },
+    { icon: Clock,       label: 'Total Hours',   value: formatHours(totalHours),                                 color: 'var(--accent)' },
+    { icon: CalendarDays,label: 'Days Attended', value: uniqueDays.toString(),                                   color: 'var(--accent)' },
+    { icon: TrendingUp,  label: 'Avg / Day',     value: avgHrsPerDay > 0 ? formatHours(avgHrsPerDay) : '—',      color: 'var(--accent)' },
+    { icon: BarChart3,   label: 'Sessions',      value: sessions.length.toString(),                              color: 'var(--accent)' },
   ]
 
   return (
@@ -577,14 +577,14 @@ export default function ReportsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <CalendarDays size={15} style={{ color: 'var(--info)' }} />
+                <CalendarDays size={15} style={{ color: 'var(--accent)' }} />
                 <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Avg by Weekday</h2>
               </div>
               <WeekdayChart sessions={sessions} />
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <TrendingUp size={15} style={{ color: 'var(--success)' }} />
+                <TrendingUp size={15} style={{ color: 'var(--accent)' }} />
                 <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Cumulative Hours</h2>
               </div>
               <CumulativeChart sessions={sessions} />

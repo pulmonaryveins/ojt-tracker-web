@@ -217,14 +217,10 @@ export default function ProfilePage() {
       transition={{ duration: 0.3 }}
     >
       <style>{spinStyle}{`
-        @media (min-width: 900px) {
-          .profile-outer { display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem; align-items: start; }
-          .profile-main { display: flex; flex-direction: column; }
-          .profile-side { display: flex; flex-direction: column; gap: 1rem; }
-        }
-        @media (max-width: 899px) {
-          .profile-outer { display: flex; flex-direction: column; gap: 1rem; }
-          .profile-side { display: flex; flex-direction: column; gap: 1rem; }
+        .profile-outer { display: flex; flex-direction: column; gap: 1rem; }
+        .profile-side { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 600px) {
+          .profile-side { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -245,7 +241,84 @@ export default function ProfilePage() {
 
       <div className="profile-outer">
 
-        {/* ── Left: tabs + content ── */}
+        {/* ── Top: profile card + OJT progress ── */}
+        <div className="profile-side">
+
+          {/* Profile card */}
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
+            textAlign: 'center',
+          }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+              <div style={{
+                width: '80px', height: '80px', borderRadius: '50%',
+                border: '2px solid var(--accent)',
+                overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: 'var(--accent)',
+                fontSize: '1.5rem', fontWeight: 800, color: 'white',
+              }}>
+                {avatarPreview
+                  ? <img src={avatarPreview} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : getInitials(displayName)}
+              </div>
+              <div style={{
+                position: 'absolute', bottom: 0, right: 0,
+                width: '26px', height: '26px', borderRadius: '50%',
+                backgroundColor: 'var(--accent)', border: '2px solid var(--bg-card)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Camera size={13} color="white" />
+              </div>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+            <div>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{displayName}</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>{user?.email}</p>
+            </div>
+          </div>
+
+          {/* OJT Progress card */}
+          {ojtSetup && (
+            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <TrendingUp size={15} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>OJT Progress</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent)' }}>{progressPct.toFixed(1)}%</span>
+              </div>
+              <div style={{ backgroundColor: 'var(--bg-modifier)', borderRadius: '9999px', height: '7px', overflow: 'hidden', marginBottom: '0.875rem' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  style={{ backgroundColor: progressPct >= 100 ? 'var(--success)' : 'var(--accent)', height: '100%', borderRadius: '9999px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[
+                  { label: 'Completed', value: `${totalHours.toFixed(1)} hrs` },
+                  { label: 'Required', value: `${requiredHoursNum} hrs` },
+                  { label: 'Remaining', value: `${Math.max(0, requiredHoursNum - totalHours).toFixed(1)} hrs` },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{label}</span>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* ── Tabs + content ── */}
         <div className="profile-main">
 
           {/* Tab Bar */}
@@ -468,13 +541,13 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'end' }}>
                       <div>
                         <FieldLabel text="OJT Start Date" />
                         <DatePicker value={ojtStart} onChange={setOjtStart} placeholder="Select start date" />
                       </div>
                       <div>
-                        <FieldLabel text="Expected End Date" hint="Optional" />
+                        <FieldLabel text="Expected End Date"/>
                         <DatePicker value={ojtEnd} onChange={setOjtEnd} placeholder="Auto-calculate" />
                       </div>
                     </div>
@@ -581,82 +654,7 @@ export default function ProfilePage() {
           </AnimatePresence>
         </div>
 
-        {/* ── Right: profile card + OJT progress ── */}
-        <div className="profile-side">
 
-          {/* Profile card */}
-          <div style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '0.75rem',
-            padding: '1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.75rem',
-            textAlign: 'center',
-          }}>
-            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
-              <div style={{
-                width: '80px', height: '80px', borderRadius: '50%',
-                border: '2px solid var(--accent)',
-                overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backgroundColor: 'var(--accent)',
-                fontSize: '1.5rem', fontWeight: 800, color: 'white',
-              }}>
-                {avatarPreview
-                  ? <img src={avatarPreview} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : getInitials(displayName)}
-              </div>
-              <div style={{
-                position: 'absolute', bottom: 0, right: 0,
-                width: '26px', height: '26px', borderRadius: '50%',
-                backgroundColor: 'var(--accent)', border: '2px solid var(--bg-card)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Camera size={13} color="white" />
-              </div>
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
-            <div>
-              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{displayName}</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>{user?.email}</p>
-            </div>
-          </div>
-
-          {/* OJT Progress card */}
-          {ojtSetup && (
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <TrendingUp size={15} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>OJT Progress</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent)' }}>{progressPct.toFixed(1)}%</span>
-              </div>
-              <div style={{ backgroundColor: 'var(--bg-modifier)', borderRadius: '9999px', height: '7px', overflow: 'hidden', marginBottom: '0.875rem' }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  style={{ backgroundColor: progressPct >= 100 ? 'var(--success)' : 'var(--accent)', height: '100%', borderRadius: '9999px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {[
-                  { label: 'Completed', value: `${totalHours.toFixed(1)} hrs` },
-                  { label: 'Required', value: `${requiredHoursNum} hrs` },
-                  { label: 'Remaining', value: `${Math.max(0, requiredHoursNum - totalHours).toFixed(1)} hrs` },
-                ].map(({ label, value }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{label}</span>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-        </div>
 
       </div>
     </motion.div>

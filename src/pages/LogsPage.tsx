@@ -294,8 +294,8 @@ export default function LogsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
         {[
           { icon: Clock, label: 'Total Hours', value: totalHours.toFixed(1), color: 'var(--accent)' },
-          { icon: CalendarDays, label: 'Total Days', value: totalDays.toString(), color: 'var(--info)' },
-          { icon: TrendingUp, label: 'Avg/Day', value: avgDay.toFixed(1), color: 'var(--success)' },
+          { icon: CalendarDays, label: 'Total Days', value: totalDays.toString(), color: 'var(--accent)' },
+          { icon: TrendingUp, label: 'Avg/Day', value: avgDay.toFixed(1), color: 'var(--accent)' },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.875rem', textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>

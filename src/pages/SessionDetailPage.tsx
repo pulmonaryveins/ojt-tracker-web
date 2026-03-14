@@ -155,7 +155,7 @@ export default function SessionDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <SkeletonCard lines={4} />
         <SkeletonCard lines={3} />
         <SkeletonCard lines={5} />
@@ -177,15 +177,9 @@ export default function SessionDetailPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      style={{ maxWidth: '860px', margin: '0 auto' }}
     >
-      <style>{spinStyle}{`
-        @media (min-width: 900px) {
-          .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
-        }
-        @media (max-width: 899px) {
-          .detail-grid { display: flex; flex-direction: column; gap: 1rem; }
-        }
-      `}</style>
+      <style>{spinStyle}</style>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
@@ -254,63 +248,48 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      <div className="detail-grid">
-        {/* ── Left column: time + breaks ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Time Information Card */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {/* Time Information — full width */}
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
           <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             <Clock size={13} /> Time Information
           </h2>
-
           {isEditing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.875rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Date</label>
-                <DatePicker
-                  value={editDate}
-                  onChange={setEditDate}
-                  triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }}
-                />
+                <DatePicker value={editDate} onChange={setEditDate}
+                  triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Time In</label>
-                  <TimePicker
-                    value={editTimeIn}
-                    onChange={setEditTimeIn}
-                    placeholder="Select time in"
-                    triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Time Out</label>
-                  <TimePicker
-                    value={editTimeOut}
-                    onChange={setEditTimeOut}
-                    placeholder="Select time out"
-                    triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }}
-                  />
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Time In</label>
+                <TimePicker value={editTimeIn} onChange={setEditTimeIn} placeholder="Select time in"
+                  triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Time Out</label>
+                <TimePicker value={editTimeOut} onChange={setEditTimeOut} placeholder="Select time out"
+                  triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }} />
               </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
               {[
-                { label: 'Time In:', value: formatTime12h(session.start_time) },
-                { label: 'Time Out:', value: formatTime12h(session.end_time) },
-                { label: 'Total Hours:', value: `${session.total_hours.toFixed(2)}h` },
+                { label: 'Time In', value: formatTime12h(session.start_time) },
+                { label: 'Time Out', value: formatTime12h(session.end_time) },
+                { label: 'Total Hours', value: `${session.total_hours.toFixed(2)}h` },
               ].map(({ label, value }) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.625rem' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{label}</span>
-                  <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
+                <div key={label} style={{ backgroundColor: 'var(--bg-modifier)', borderRadius: '0.5rem', padding: '0.875rem 1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.375rem' }}>{label}</div>
+                  <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Breaks Card */}
+        {/* Breaks — full width */}
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
             <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -323,27 +302,18 @@ export default function SessionDetailPage() {
               </button>
             )}
           </div>
-
           {isEditing ? (
             editBreaks.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No breaks added.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.5rem' }}>
                 {editBreaks.map((brk, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '0.625rem', alignItems: 'center', backgroundColor: 'var(--bg-modifier)', borderRadius: '0.5rem', padding: '0.75rem' }}>
                     <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                      <TimePicker
-                        value={brk.start}
-                        onChange={(v) => setEditBreaks((prev) => prev.map((b, i) => i === idx ? { ...b, start: v } : b))}
-                        placeholder="Start"
-                        triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }}
-                      />
-                      <TimePicker
-                        value={brk.end}
-                        onChange={(v) => setEditBreaks((prev) => prev.map((b, i) => i === idx ? { ...b, end: v } : b))}
-                        placeholder="End"
-                        triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }}
-                      />
+                      <TimePicker value={brk.start} onChange={(v) => setEditBreaks((prev) => prev.map((b, i) => i === idx ? { ...b, start: v } : b))}
+                        placeholder="Start" triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }} />
+                      <TimePicker value={brk.end} onChange={(v) => setEditBreaks((prev) => prev.map((b, i) => i === idx ? { ...b, end: v } : b))}
+                        placeholder="End" triggerStyle={{ padding: '0.625rem 0.875rem 0.625rem 2.5rem', fontSize: '0.875rem' }} />
                     </div>
                     <button type="button" onClick={() => setEditBreaks((prev) => prev.filter((_, i) => i !== idx))}
                       style={{ color: 'var(--error)', padding: '0.25rem', flexShrink: 0 }}>
@@ -356,79 +326,40 @@ export default function SessionDetailPage() {
           ) : session.breaks.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No breaks recorded.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
               {session.breaks.map((brk, idx) => (
-                <div key={brk.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-modifier)', borderRadius: '0.375rem' }}>
+                <div key={brk.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0.875rem', backgroundColor: 'var(--bg-modifier)', borderRadius: '0.375rem' }}>
                   <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                     Break {idx + 1}: {formatTime12h(brk.start_time)} – {formatTime12h(brk.end_time)}
                   </span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{formatDuration(brk.duration)}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>{formatDuration(brk.duration)}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
-        </div>{/* end left column */}
 
-        {/* ── Right column: journal + images ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-        {/* Session Report / Journal */}
+        {/* Journal */}
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <button
-            onClick={() => setShowJournal(!showJournal)}
-            style={{
-              width: '100%', padding: '1rem 1.25rem',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.8125rem',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}
-          >
+          <button onClick={() => setShowJournal(!showJournal)}
+            style={{ width: '100%', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><ClipboardList size={13} /> Journal</span>
             {showJournal ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showJournal && (
             <div style={{ padding: '0 1.25rem 1.25rem' }}>
               {isEditing ? (
-                <textarea
-                  value={editJournal}
-                  onChange={(e) => setEditJournal(e.target.value)}
-                  rows={6}
+                <textarea value={editJournal} onChange={(e) => setEditJournal(e.target.value)} rows={5}
                   placeholder="Write about your experience, learnings, or reflections…"
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.5rem',
-                    padding: '0.75rem 1rem',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9375rem',
-                    outline: 'none',
-                    width: '100%',
-                    resize: 'vertical',
-                    minHeight: '120px',
-                    transition: 'border-color 150ms',
-                    fontFamily: 'inherit',
-                  }}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
-                />
+                  style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.75rem 1rem', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', width: '100%', resize: 'vertical', minHeight: '110px', transition: 'border-color 150ms', fontFamily: 'inherit' }}
+                  onFocus={onFocus} onBlur={onBlur} />
               ) : session.journal ? (
-                <p style={{ color: 'var(--text-primary)', fontSize: '0.9375rem', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                  {session.journal}
-                </p>
+                <p style={{ color: 'var(--text-primary)', fontSize: '0.9375rem', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{session.journal}</p>
               ) : (
                 <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>No report created yet</p>
-                  <button
-                    onClick={enterEditMode}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                      color: 'var(--accent)', fontSize: '0.875rem', fontWeight: 600,
-                      border: '1px solid var(--accent-light)',
-                      padding: '0.5rem 1rem', borderRadius: '0.375rem',
-                      backgroundColor: 'var(--accent-light)',
-                    }}
-                  >
+                  <button onClick={enterEditMode}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--accent)', fontSize: '0.875rem', fontWeight: 600, border: '1px solid var(--accent-light)', padding: '0.5rem 1rem', borderRadius: '0.375rem', backgroundColor: 'var(--accent-light)' }}>
                     <Plus size={15} /> Add Report
                   </button>
                 </div>
@@ -443,8 +374,6 @@ export default function SessionDetailPage() {
             <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <Images size={13} /> Session Images
             </h2>
-
-            {/* Existing images */}
             {(isEditing ? editImages : (session.report_images ?? [])).length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.5rem', marginBottom: isEditing ? '0.75rem' : 0 }}>
                 {(isEditing ? editImages : (session.report_images ?? [])).map((url, idx) => (
@@ -452,76 +381,34 @@ export default function SessionDetailPage() {
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {!isEditing && (
                       <a href={url} target="_blank" rel="noopener noreferrer"
-                        style={{
-                          position: 'absolute', bottom: '4px', right: '4px',
-                          backgroundColor: 'rgba(0,0,0,0.6)', color: 'white',
-                          borderRadius: '4px', padding: '3px 5px',
-                          display: 'flex', alignItems: 'center',
-                        }}>
+                        style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', borderRadius: '4px', padding: '3px 5px', display: 'flex', alignItems: 'center' }}>
                         <Download size={12} />
                       </a>
                     )}
                     {isEditing && (
-                      <button
-                        onClick={() => setEditImages((prev) => prev.filter((_, i) => i !== idx))}
-                        style={{
-                          position: 'absolute', top: '4px', right: '4px',
-                          backgroundColor: 'rgba(0,0,0,0.7)', color: 'white',
-                          borderRadius: '50%', width: '22px', height: '22px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
+                      <button onClick={() => setEditImages((prev) => prev.filter((_, i) => i !== idx))}
+                        style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <X size={12} />
                       </button>
                     )}
                   </div>
                 ))}
-                {/* New image previews */}
                 {isEditing && newImagePreviews.map((src, idx) => (
                   <div key={`new-${idx}`} style={{ position: 'relative', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden', border: '2px dashed var(--accent)' }}>
                     <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      onClick={() => {
-                        setNewImagePreviews((p) => p.filter((_, i) => i !== idx))
-                        setNewImageFiles((p) => p.filter((_, i) => i !== idx))
-                      }}
-                      style={{
-                        position: 'absolute', top: '4px', right: '4px',
-                        backgroundColor: 'rgba(0,0,0,0.7)', color: 'white',
-                        borderRadius: '50%', width: '22px', height: '22px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
+                    <button onClick={() => { setNewImagePreviews((p) => p.filter((_, i) => i !== idx)); setNewImageFiles((p) => p.filter((_, i) => i !== idx)) }}
+                      style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={12} />
                     </button>
                   </div>
                 ))}
               </div>
             )}
-
             {isEditing && (
               <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleNewImages}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    width: '100%', padding: '0.75rem',
-                    backgroundColor: 'transparent',
-                    border: '2px dashed var(--border)',
-                    borderRadius: '0.5rem',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.875rem', fontWeight: 600,
-                  }}
-                >
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleNewImages} style={{ display: 'none' }} />
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: 'transparent', border: '2px dashed var(--border)', borderRadius: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
                   <ImagePlus size={16} /> Add images
                 </button>
               </>
@@ -529,35 +416,31 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        </div>{/* end right column */}
-      </div>{/* end detail-grid */}
+        {/* Bottom action row */}
+        {isEditing ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+            <button onClick={() => saveEdit()} disabled={isSaving}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--success)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isSaving ? 0.7 : 1 }}>
+              <Check size={16} /> {isSaving ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button onClick={() => setIsEditing(false)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+              <X size={15} /> Cancel
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+            <button onClick={() => toast('PDF export coming soon!', 'info')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem' }}>
+              <Download size={18} /> Export as PDF
+            </button>
+            <Link to="/logs"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', padding: '0.875rem 1.25rem', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              <ArrowLeft size={16} /> Back to Logs
+            </Link>
+          </div>
+        )}
 
-      {/* Export / Back */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
-        <button
-          onClick={() => toast('PDF export coming soon!', 'info')}
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            backgroundColor: 'var(--accent)', color: 'white',
-            borderRadius: '0.5rem', padding: '0.875rem',
-            fontWeight: 700, fontSize: '0.9375rem',
-          }}
-        >
-          <Download size={18} /> Export as PDF
-        </button>
-
-        <Link
-          to="/logs"
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
-            backgroundColor: 'var(--bg-hover)',
-            color: 'var(--text-primary)',
-            borderRadius: '0.5rem', padding: '0.875rem',
-            fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none',
-          }}
-        >
-          <ArrowLeft size={16} /> Back to Activity Logs
-        </Link>
       </div>
     </motion.div>
   )

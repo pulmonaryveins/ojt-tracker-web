@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -94,7 +94,7 @@ export default function NewSessionPage() {
     onError: (err: Error) => toast(err.message, 'error'),
   })
 
-  function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
     mutate()
   }
@@ -163,15 +163,9 @@ export default function NewSessionPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      style={{ maxWidth: '860px', margin: '0 auto' }}
     >
-      <style>{spinStyle}{`
-        @media (min-width: 900px) {
-          .session-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
-        }
-        @media (max-width: 899px) {
-          .session-form-grid { display: flex; flex-direction: column; gap: 1.25rem; }
-        }
-      `}</style>
+      <style>{spinStyle}</style>
 
       {/* Back link */}
       <Link
@@ -201,9 +195,9 @@ export default function NewSessionPage() {
 
       {/* Info note */}
       <div style={{
-        backgroundColor: 'rgba(0,168,252,0.08)',
-        border: '1px solid rgba(0,168,252,0.3)',
-        borderLeft: '3px solid var(--info)',
+        backgroundColor: 'var(--accent-light)',
+        border: '1px solid var(--accent-border)',
+        borderLeft: '3px solid var(--accent)',
         borderRadius: '0.5rem',
         padding: '0.875rem 1rem',
         fontSize: '0.8125rem',
@@ -217,36 +211,26 @@ export default function NewSessionPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="session-form-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          {/* ── Left: time + breaks ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* Date */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Date *
-              </label>
+          {/* Date + Time row */}
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', alignItems: 'end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date *</label>
               <DatePicker value={date} onChange={setDate} />
             </div>
-
-            {/* Time In / Out */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Time In *
-                </label>
-                <TimePicker value={timeIn} onChange={setTimeIn} placeholder="Select time in" />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Time Out *
-                </label>
-                <TimePicker value={timeOut} onChange={setTimeOut} placeholder="Select time out" />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time In *</label>
+              <TimePicker value={timeIn} onChange={setTimeIn} placeholder="Select time in" />
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Out *</label>
+              <TimePicker value={timeOut} onChange={setTimeOut} placeholder="Select time out" />
+            </div>
+          </div>
 
-            {/* Use Average Schedule */}
+          {/* Use Average + Calculated hours row */}
+          <div style={{ display: 'grid', gridTemplateColumns: computedHours > 0 ? '1fr auto' : '1fr', gap: '1rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={useAverageSchedule}
@@ -257,8 +241,7 @@ export default function NewSessionPage() {
                 border: '1px solid var(--accent-border)',
                 borderRadius: '0.5rem',
                 color: 'var(--accent)',
-                fontSize: '0.875rem',
-                fontWeight: 700,
+                fontSize: '0.875rem', fontWeight: 700,
                 transition: 'background-color 150ms',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-border)' }}
@@ -267,10 +250,20 @@ export default function NewSessionPage() {
               <Sparkles size={16} /> Use Average Time
               {avgSchedule?.avgTotalHours ? ` (avg ${avgSchedule.avgTotalHours}h)` : ''}
             </button>
+            {computedHours > 0 && (
+              <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</span>
+                <span style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--accent)' }}>{computedHours.toFixed(2)}h</span>
+              </div>
+            )}
+          </div>
+
+          {/* Breaks + Images side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
 
             {/* Breaks */}
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 1rem', borderBottom: breaks.length > 0 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 1.25rem', borderBottom: breaks.length > 0 ? '1px solid var(--border)' : 'none' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Break Periods
                 </label>
@@ -279,21 +272,14 @@ export default function NewSessionPage() {
                   <Plus size={14} /> Add Break
                 </button>
               </div>
-
               {breaks.length === 0 && (
-                <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                <div style={{ padding: '1.25rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                   No breaks added
                 </div>
               )}
-
               {breaks.map((brk, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  style={{ padding: '0.75rem 1rem', borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}
-                >
+                <motion.div key={idx} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  style={{ padding: '0.875rem 1.25rem', borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Break {idx + 1}</span>
                     <button type="button" onClick={() => removeBreak(idx)} style={{ color: 'var(--error)', padding: '0.25rem' }}>
@@ -315,19 +301,15 @@ export default function NewSessionPage() {
                 </motion.div>
               ))}
             </div>
-          </div>
-
-          {/* ── Right: images + journal + submit ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Daily Images */}
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.75rem' }}>
                 Daily Images <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
               </label>
               <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageAdd} style={{ display: 'none' }} />
               {imagePreviews.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   {imagePreviews.map((src, idx) => (
                     <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
                       <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -349,52 +331,46 @@ export default function NewSessionPage() {
               </button>
             </div>
 
-            {/* Journal */}
-            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-              <button type="button" onClick={() => setShowJournal(!showJournal)}
-                style={{ width: '100%', padding: '0.875rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>
-                <span>Journal <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.8125rem' }}>(optional)</span></span>
-                {showJournal ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
-              </button>
-              {showJournal && (
-                <div style={{ padding: '0 1rem 1rem' }}>
-                  <textarea
-                    value={journal}
-                    onChange={(e) => setJournal(e.target.value)}
-                    rows={6}
-                    placeholder="Write about your experience, learnings, or reflections for today…"
-                    style={{
-                      backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                      padding: '0.75rem 1rem', color: 'var(--text-primary)', fontSize: '0.9375rem',
-                      outline: 'none', width: '100%', resize: 'vertical', minHeight: '120px',
-                      transition: 'border-color 150ms, box-shadow 150ms', fontFamily: 'inherit',
-                    }}
-                    onFocus={onFocus} onBlur={onBlur}
-                  />
-                </div>
-              )}
-            </div>
+          </div>
 
-            {/* Calculated hours */}
-            {computedHours > 0 && (
-              <div style={{ backgroundColor: 'var(--bg-modifier)', borderRadius: '0.5rem', padding: '1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Calculated Total Hours</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent)' }}>{computedHours.toFixed(2)}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>hours (excluding breaks)</div>
+          {/* Journal */}
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <button type="button" onClick={() => setShowJournal(!showJournal)}
+              style={{ width: '100%', padding: '0.875rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>
+              <span>Journal <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.8125rem' }}>(optional)</span></span>
+              {showJournal ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+            </button>
+            {showJournal && (
+              <div style={{ padding: '0 1.25rem 1.25rem' }}>
+                <textarea
+                  value={journal}
+                  onChange={(e) => setJournal(e.target.value)}
+                  rows={5}
+                  placeholder="Write about your experience, learnings, or reflections for today…"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                    padding: '0.75rem 1rem', color: 'var(--text-primary)', fontSize: '0.9375rem',
+                    outline: 'none', width: '100%', resize: 'vertical', minHeight: '110px',
+                    transition: 'border-color 150ms, box-shadow 150ms', fontFamily: 'inherit',
+                  }}
+                  onFocus={onFocus} onBlur={onBlur}
+                />
               </div>
             )}
+          </div>
 
-            {/* Submit */}
+          {/* Submit + Cancel */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
             <button type="submit" disabled={isPending}
-              style={{ backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', width: '100%', opacity: isPending ? 0.75 : 1, transition: 'opacity 150ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              style={{ backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isPending ? 0.75 : 1, transition: 'opacity 150ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               {isPending ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : 'Save Manual Entry'}
             </button>
-
             <Link to="/logs"
-              style={{ padding: '0.875rem', backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+              style={{ padding: '0.875rem 1.5rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               Cancel
             </Link>
           </div>
+
         </div>
       </form>
     </motion.div>
