@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GraduationCap, Building2, Clock3, ChevronRight, Check, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
@@ -13,6 +14,7 @@ const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const authLoading = useAuthStore((s) => s.loading)
   const userId = user?.id ?? ''
@@ -75,9 +77,13 @@ export default function OnboardingPage() {
       setError('Please fill in all fields.')
       return
     }
+    if (!userId) {
+      setError('Session expired. Please refresh and try again.')
+      return
+    }
     setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       user_id: userId,
       full_name: user?.user_metadata?.full_name ?? null,
       school,
@@ -86,6 +92,11 @@ export default function OnboardingPage() {
       profile_picture_url: null,
     } as any, { onConflict: 'user_id' })
     setLoading(false)
+    if (profileError) {
+      setError(profileError.message)
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['profile', userId] })
     setStep(2)
   }
 
@@ -104,19 +115,24 @@ export default function OnboardingPage() {
       setError('End date must be after start date.')
       return
     }
+    if (!userId) {
+      setError('Session expired. Please refresh and try again.')
+      return
+    }
     setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: dbError } = await supabase.from('ojt_setup').upsert({
       user_id: userId,
       required_hours: hrs,
       start_date: startDate,
-      end_date: endDate,
+      end_date: endDate || null,
     } as any, { onConflict: 'user_id' })
     setLoading(false)
     if (dbError) {
       setError(dbError.message)
       return
     }
+    queryClient.invalidateQueries({ queryKey: ['ojtSetup', userId] })
     setStep(3)
   }
 
