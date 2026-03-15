@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, Mail as MailIcon, User, GraduationCap, Building2, Lock, BookOpen } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../stores/authStore'
 import Select from '../../components/ui/Select'
 
 const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`
@@ -11,6 +12,7 @@ const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 
 export default function SignupPage() {
   const navigate = useNavigate()
+  const setSession = useAuthStore((s) => s.setSession)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [school, setSchool] = useState('')
@@ -60,9 +62,10 @@ export default function SignupPage() {
       } as any, { onConflict: 'user_id' })
     }
 
-    // If session exists (email confirmation disabled), auth listener handles redirect automatically.
-    // Otherwise navigate to login.
-    if (!data.session) {
+    if (data.session) {
+      setSession(data.session)
+      navigate('/onboarding')
+    } else {
       navigate('/login')
     }
     setLoading(false)
