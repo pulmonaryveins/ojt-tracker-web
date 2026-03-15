@@ -2,14 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign, ChevronDown, X } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign, ChevronDown, X, Coffee } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday } from 'date-fns'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
 import { supabase } from '../lib/supabase'
-import { formatTime12h } from '../utils/timeUtils'
+import { formatTime12h, formatDuration } from '../utils/timeUtils'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import type { Session, PaySetup } from '../types/database'
+import type { SessionWithBreaks, PaySetup } from '../types/database'
 
 function formatCurrency(amount: number, currency: string): string {
   try {
@@ -225,7 +225,7 @@ export default function LogsPage() {
 
   const { data: allSessions, isLoading } = useQuery({
     queryKey: ['allSessions', userId],
-    queryFn: () => SessionService.getSessions(userId, 1000, 0),
+    queryFn: () => SessionService.getSessionsWithBreaks(userId, 1000, 0),
     enabled: !!userId,
   })
 
@@ -521,12 +521,38 @@ export default function LogsPage() {
                                 {session.description}
                               </div>
                             )}
+                            {(session as SessionWithBreaks).breaks?.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+                                {(session as SessionWithBreaks).breaks.map((brk, i) => (
+                                  <span key={brk.id ?? i} style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                                    backgroundColor: 'var(--bg-modifier)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '9999px',
+                                    padding: '0.125rem 0.5rem',
+                                    fontSize: '0.6875rem',
+                                    color: 'var(--text-muted)',
+                                    fontWeight: 500,
+                                  }}>
+                                    <Coffee size={10} />
+                                    {formatTime12h(brk.start_time)} – {formatTime12h(brk.end_time)}
+                                    {brk.duration > 0 && <span style={{ opacity: 0.7 }}>· {formatDuration(brk.duration)}</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div style={{ flexShrink: 0, textAlign: 'right' }}>
                             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent)' }}>
                               {session.total_hours.toFixed(1)}h
                             </div>
                             <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>total hours</div>
+                            {(session as SessionWithBreaks).breaks?.length > 0 && (
+                              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem', justifyContent: 'flex-end' }}>
+                                <Coffee size={10} />
+                                {(session as SessionWithBreaks).breaks.length} break{(session as SessionWithBreaks).breaks.length > 1 ? 's' : ''}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </Link>

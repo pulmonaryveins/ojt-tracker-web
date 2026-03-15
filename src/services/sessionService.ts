@@ -247,6 +247,48 @@ const SessionService = {
     }
   },
 
+  async getAverageBreaks(userId: string): Promise<Array<{ start: string; end: string }>> {
+    const { data } = await supabase
+      .from('sessions')
+      .select('*, breaks(*)')
+      .eq('user_id', userId)
+      .not('end_time', 'is', null)
+      .order('date', { ascending: false })
+      .limit(20)
+
+    const sessions = (data ?? []) as any as SessionWithBreaks[]
+    const withBreaks = sessions.filter((s) => s.breaks && s.breaks.length > 0)
+    if (withBreaks.length === 0) return []
+
+    function timeToMinutes(t: string) {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + m
+    }
+    function minutesToTimeString(mins: number) {
+      const h = Math.floor(mins / 60) % 24
+      const m = Math.round(mins % 60)
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+    }
+
+    const maxBreaks = Math.max(...withBreaks.map((s) => s.breaks.length))
+    const result: Array<{ start: string; end: string }> = []
+
+    for (let i = 0; i < maxBreaks; i++) {
+      const atPos = withBreaks
+        .filter((s) => s.breaks.length > i && s.breaks[i].end_time)
+        .map((s) => ({
+          start: timeToMinutes(s.breaks[i].start_time),
+          end: timeToMinutes(s.breaks[i].end_time!),
+        }))
+      if (atPos.length === 0) continue
+      const avgStart = atPos.reduce((sum, b) => sum + b.start, 0) / atPos.length
+      const avgEnd = atPos.reduce((sum, b) => sum + b.end, 0) / atPos.length
+      result.push({ start: minutesToTimeString(avgStart), end: minutesToTimeString(avgEnd) })
+    }
+
+    return result
+  },
+
   async uploadSessionImage(file: File, userId: string): Promise<string> {
     const ext = file.name.split('.').pop()
     const fileName = `${userId}/${Date.now()}.${ext}`

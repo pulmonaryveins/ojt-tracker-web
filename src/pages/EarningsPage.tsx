@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   DollarSign, TrendingUp, Wallet, CalendarDays, Check, Loader2,
-  ChevronDown, ChevronUp, X, Banknote, Clock, Filter,
+  ChevronDown, ChevronUp, X, Banknote, Clock, Filter, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
@@ -132,6 +132,8 @@ function MonthlyChart({
 }
 
 // ── Filter period type ─────────────────────────────────────────────
+const EARNINGS_PAGE_SIZE = 5
+
 type FilterPeriod = 'all' | '1m' | '3m' | '6m' | 'ytd'
 
 const FILTER_LABELS: { key: FilterPeriod; label: string }[] = [
@@ -153,6 +155,9 @@ export default function EarningsPage() {
   const [effectiveDate, setEffectiveDate] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all')
+  const [breakdownPage, setBreakdownPage] = useState(0)
+
+  const handleFilterPeriod = useCallback((p: FilterPeriod) => { setFilterPeriod(p); setBreakdownPage(0) }, [])
 
   const { data: paySetup, isLoading: loadingPay } = useQuery({
     queryKey: ['paySetup', userId],
@@ -429,7 +434,7 @@ export default function EarningsPage() {
                   {FILTER_LABELS.map(({ key, label }) => (
                     <button
                       key={key}
-                      onClick={() => setFilterPeriod(key)}
+                      onClick={() => handleFilterPeriod(key)}
                       style={{
                         padding: '0.3125rem 0.625rem',
                         borderRadius: '9999px',
@@ -456,87 +461,80 @@ export default function EarningsPage() {
                   ? 'No sessions logged yet. Start logging sessions to see earnings here.'
                   : 'No sessions in this period.'}
               </div>
-            ) : (
-              <div>
-                {filteredSessions.map((session, i) => {
-                  const sessionDate = new Date(session.date + 'T00:00:00')
-                  const earned = session.total_hours * rate
-                  const journalText = session.journal || session.description || ''
-
-                  return (
-                    <div
-                      key={session.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '52px 1fr auto',
-                        gap: '0.875rem',
-                        alignItems: 'start',
-                        padding: '0.875rem 1.25rem',
-                        borderBottom: i < filteredSessions.length - 1 ? '1px solid var(--border)' : 'none',
-                        backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)',
-                        transition: 'background-color 150ms',
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)' }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)' }}
-                    >
-                      {/* Date badge */}
-                      <div style={{
-                        backgroundColor: 'var(--bg-card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '0.5rem',
-                        padding: '0.375rem 0.25rem',
-                        textAlign: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                          {format(sessionDate, 'd')}
+            ) : (() => {
+              const totalPages = Math.ceil(filteredSessions.length / EARNINGS_PAGE_SIZE)
+              const paginated = filteredSessions.slice(breakdownPage * EARNINGS_PAGE_SIZE, (breakdownPage + 1) * EARNINGS_PAGE_SIZE)
+              return (
+                <>
+                  <div>
+                    {paginated.map((session, i) => {
+                      const sessionDate = new Date(session.date + 'T00:00:00')
+                      const earned = session.total_hours * rate
+                      const journalText = session.journal || session.description || ''
+                      return (
+                        <div
+                          key={session.id}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '52px 1fr auto',
+                            gap: '0.875rem',
+                            alignItems: 'start',
+                            padding: '0.875rem 1.25rem',
+                            borderBottom: i < paginated.length - 1 ? '1px solid var(--border)' : 'none',
+                            backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)',
+                            transition: 'background-color 150ms',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)' }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)' }}
+                        >
+                          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.375rem 0.25rem', textAlign: 'center', flexShrink: 0 }}>
+                            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{format(sessionDate, 'd')}</div>
+                            <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: '0.125rem', lineHeight: 1 }}>{format(sessionDate, 'MMM')}</div>
+                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1, marginTop: '0.0625rem' }}>{format(sessionDate, 'yyyy')}</div>
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: journalText ? '0.375rem' : 0 }}>
+                              <Clock size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{formatHours(session.total_hours)}</span>
+                            </div>
+                            {journalText && (
+                              <p className="line-clamp-2" title={journalText} style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                                {journalText}
+                              </p>
+                            )}
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(35,165,90,0.1)', border: '1px solid rgba(35,165,90,0.2)', borderRadius: '0.5rem', padding: '0.375rem 0.625rem', textAlign: 'center', flexShrink: 0 }}>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap' }}>{formatCurrency(earned, curr)}</div>
+                            <div style={{ fontSize: '0.625rem', color: 'var(--success)', opacity: 0.7, marginTop: '0.0625rem' }}>earned</div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: '0.125rem', lineHeight: 1 }}>
-                          {format(sessionDate, 'MMM')}
-                        </div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1, marginTop: '0.0625rem' }}>
-                          {format(sessionDate, 'yyyy')}
-                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                      <button onClick={() => setBreakdownPage((p) => Math.max(0, p - 1))} disabled={breakdownPage === 0}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: breakdownPage === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: breakdownPage === 0 ? 0.5 : 1 }}>
+                        <ChevronLeft size={14} /> Prev
+                      </button>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button key={i} onClick={() => setBreakdownPage(i)}
+                            style={{ width: '32px', height: '32px', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: breakdownPage === i ? 700 : 400, backgroundColor: breakdownPage === i ? 'var(--accent)' : 'var(--bg-secondary)', color: breakdownPage === i ? 'white' : 'var(--text-secondary)', border: `1px solid ${breakdownPage === i ? 'var(--accent)' : 'var(--border)'}` }}>
+                            {i + 1}
+                          </button>
+                        ))}
                       </div>
-
-                      {/* Session details */}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: journalText ? '0.375rem' : 0 }}>
-                          <Clock size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {formatHours(session.total_hours)}
-                          </span>
-                        </div>
-                        {journalText && (
-                          <p
-                            className="line-clamp-2"
-                            title={journalText}
-                            style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.55 }}
-                          >
-                            {journalText}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Earnings badge */}
-                      <div style={{
-                        backgroundColor: 'rgba(35,165,90,0.1)',
-                        border: '1px solid rgba(35,165,90,0.2)',
-                        borderRadius: '0.5rem',
-                        padding: '0.375rem 0.625rem',
-                        textAlign: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap' }}>
-                          {formatCurrency(earned, curr)}
-                        </div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--success)', opacity: 0.7, marginTop: '0.0625rem' }}>earned</div>
-                      </div>
+                      <button onClick={() => setBreakdownPage((p) => Math.min(totalPages - 1, p + 1))} disabled={breakdownPage >= totalPages - 1}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: breakdownPage >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: breakdownPage >= totalPages - 1 ? 0.5 : 1 }}>
+                        Next <ChevronRight size={14} />
+                      </button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  )}
+                </>
+              )
+            })()}
           </div>
 
           {/* Pay Settings (collapsible) */}

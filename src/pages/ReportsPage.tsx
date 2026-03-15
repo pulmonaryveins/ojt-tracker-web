@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   FileText, Download, Clock, TrendingUp, BarChart3,
-  CalendarDays, Filter, FileDown,
+  CalendarDays, Filter, FileDown, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -208,6 +208,39 @@ function CumulativeChart({ sessions }: { sessions: SessionWithBreaks[] }) {
   )
 }
 
+// ── Pagination Component ──────────────────────────────────────────
+
+const PAGE_SIZE = 5
+
+function Pagination({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
+  if (totalPages <= 1) return null
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', flexWrap: 'wrap' }}>
+      <button
+        onClick={() => onPage(Math.max(0, page - 1))}
+        disabled={page === 0}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: page === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: page === 0 ? 0.5 : 1 }}
+      >
+        <ChevronLeft size={14} /> Prev
+      </button>
+      <div style={{ display: 'flex', gap: '0.25rem' }}>
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button key={i} onClick={() => onPage(i)} style={{ width: '32px', height: '32px', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: page === i ? 700 : 400, backgroundColor: page === i ? 'var(--accent)' : 'var(--bg-secondary)', color: page === i ? 'white' : 'var(--text-secondary)', border: `1px solid ${page === i ? 'var(--accent)' : 'var(--border)'}` }}>
+            {i + 1}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => onPage(Math.min(totalPages - 1, page + 1))}
+        disabled={page >= totalPages - 1}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: page >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: page >= totalPages - 1 ? 0.5 : 1 }}
+      >
+        Next <ChevronRight size={14} />
+      </button>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────
 
 export default function ReportsPage() {
@@ -216,6 +249,11 @@ export default function ReportsPage() {
 
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [sessionLogPage, setSessionLogPage] = useState(0)
+
+  // Reset page when date range changes
+  const handleStartDate = useCallback((d: string) => { setStartDate(d); setSessionLogPage(0) }, [])
+  const handleEndDate = useCallback((d: string) => { setEndDate(d); setSessionLogPage(0) }, [])
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['reportSessions', userId, startDate, endDate],
@@ -531,11 +569,11 @@ export default function ReportsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
-            <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" />
+            <DatePicker value={startDate} onChange={handleStartDate} placeholder="Select start date" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
-            <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
+            <DatePicker value={endDate} onChange={handleEndDate} placeholder="Select end date" />
           </div>
         </div>
       </div>
@@ -594,7 +632,14 @@ export default function ReportsPage() {
       {/* ── Session Log Table ── */}
       <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Session Log</h2>
+          <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            Session Log
+            {sessions.length > 0 && (
+              <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                ({sessions.length} session{sessions.length !== 1 ? 's' : ''})
+              </span>
+            )}
+          </h2>
           {dateRangeLabel && (
             <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{dateRangeLabel}</span>
           )}
@@ -604,41 +649,48 @@ export default function ReportsPage() {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
         ) : sessions.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No sessions in this date range.</div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--bg-modifier)' }}>
-                  {['Date', 'Time In', 'Time Out', 'Duration', 'Hours', 'Journal'].map((h) => (
-                    <th key={h} style={{ padding: '0.625rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((session, i) => (
-                  <tr key={session.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)', borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                      {format(new Date(session.date + 'T00:00:00'), 'MMM d, yyyy')}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatTime12h(session.start_time)}</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatTime12h(session.end_time)}</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{formatDuration(session.duration)}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>
-                      <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', borderRadius: '9999px', padding: '0.125rem 0.5rem', fontSize: '0.75rem', fontWeight: 600 }}>
-                        {formatHours(session.total_hours)}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {session.journal ? session.journal.slice(0, 80) : (session.description ?? '—')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          const logTotalPages = Math.ceil(sessions.length / PAGE_SIZE)
+          const paginated = sessions.slice(sessionLogPage * PAGE_SIZE, (sessionLogPage + 1) * PAGE_SIZE)
+          return (
+            <>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--bg-modifier)' }}>
+                      {['Date', 'Time In', 'Time Out', 'Duration', 'Hours', 'Journal'].map((h) => (
+                        <th key={h} style={{ padding: '0.625rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((session, i) => (
+                      <tr key={session.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-modifier)', borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                          {format(new Date(session.date + 'T00:00:00'), 'MMM d, yyyy')}
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatTime12h(session.start_time)}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatTime12h(session.end_time)}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{formatDuration(session.duration)}</td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', borderRadius: '9999px', padding: '0.125rem 0.5rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                            {formatHours(session.total_hours)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {session.journal ? session.journal.slice(0, 80) : (session.description ?? '—')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={sessionLogPage} totalPages={logTotalPages} onPage={setSessionLogPage} />
+            </>
+          )
+        })()}
       </div>
     </motion.div>
   )
