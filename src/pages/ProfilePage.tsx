@@ -1,7 +1,7 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, User, Briefcase, Clock, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp } from 'lucide-react'
+import { Camera, User, Briefcase, Clock, Eye, EyeOff, Moon, Sun, Loader2, Check, GraduationCap, Lock, TrendingUp, LogOut } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import { uploadToStorage } from '../lib/storage'
@@ -242,8 +242,10 @@ export default function ProfilePage() {
       <style>{spinStyle}{`
         .profile-outer { display: flex; flex-direction: column; gap: 1.5rem; }
         .profile-side { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        @media (max-width: 600px) {
+        .profile-logout-mobile { display: none; }
+        @media (max-width: 768px) {
           .profile-side { grid-template-columns: 1fr; }
+          .profile-logout-mobile { display: flex; }
         }
       `}</style>
 
@@ -668,6 +670,31 @@ export default function ProfilePage() {
 
 
       </div>
+
+      {/* Mobile-only logout button */}
+      <button
+        className="profile-logout-mobile"
+        onClick={() => supabase.auth.signOut()}
+        style={{
+          marginTop: '0.5rem',
+          width: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          padding: '0.875rem',
+          borderRadius: '0.5rem',
+          border: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-secondary)',
+          fontWeight: 600,
+          fontSize: '0.875rem',
+          cursor: 'pointer',
+        }}
+      >
+        <LogOut size={16} />
+        Log Out
+      </button>
+
     </motion.div>
   )
 }
