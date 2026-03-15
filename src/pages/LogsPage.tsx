@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign, ChevronDown, X } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday } from 'date-fns'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
@@ -19,7 +19,7 @@ function formatCurrency(amount: number, currency: string): string {
   }
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 type ViewMode = 'list' | 'calendar'
 
@@ -198,9 +198,21 @@ export default function LogsPage() {
   const userId = user?.id ?? ''
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
+  const [monthFilter, setMonthFilter] = useState('') // 'YYYY-MM' or ''
+  const [filterOpen, setFilterOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const filterRef = useRef<HTMLDivElement>(null)
 
-  const offset = page * PAGE_SIZE
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const { data: paySetup } = useQuery({
     queryKey: ['paySetup', userId],
@@ -211,32 +223,37 @@ export default function LogsPage() {
     enabled: !!userId,
   })
 
-  const { data: allSessions } = useQuery({
+  const { data: allSessions, isLoading } = useQuery({
     queryKey: ['allSessions', userId],
     queryFn: () => SessionService.getSessions(userId, 1000, 0),
     enabled: !!userId,
   })
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['sessions', userId, page],
-    queryFn: () => SessionService.getSessions(userId, PAGE_SIZE, offset),
-    enabled: !!userId && viewMode === 'list',
+  // All session data
+  const allData = allSessions?.data ?? []
+
+  // Derive unique months from sessions for filter options
+  const monthOptions = Array.from(
+    new Set(allData.map((s) => s.date.slice(0, 7)))
+  ).sort((a, b) => b.localeCompare(a))
+
+  // Apply search + month filter
+  const filtered = allData.filter((s) => {
+    const q = search.trim().toLowerCase()
+    const formattedDate = format(new Date(s.date + 'T00:00:00'), 'EEEE, MMMM d, yyyy').toLowerCase()
+    const matchSearch = !q ||
+      formattedDate.includes(q) ||
+      s.date.includes(q) ||
+      (s.description?.toLowerCase().includes(q) ?? false)
+    const matchMonth = !monthFilter || s.date.startsWith(monthFilter)
+    return matchSearch && matchMonth
   })
 
-  const sessions = data?.data ?? []
-  const total = data?.count ?? 0
-  const totalPages = Math.ceil(total / PAGE_SIZE)
+  // Client-side pagination
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  const filtered = search.trim()
-    ? sessions.filter(
-        (s) =>
-          s.date.includes(search) ||
-          (s.description?.toLowerCase().includes(search.toLowerCase()) ?? false)
-      )
-    : sessions
-
-  // Stats
-  const allData = allSessions?.data ?? []
+  // Stats (always from all data)
   const totalHours = allData.reduce((s, x) => s + (x.total_hours ?? 0), 0)
   const totalDays = new Set(allData.map((s) => s.date)).size
   const avgDay = totalDays > 0 ? totalHours / totalDays : 0
@@ -314,19 +331,64 @@ export default function LogsPage() {
             onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
           />
         </div>
-        <button style={{
-          padding: '0.625rem 1rem',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.5rem',
-          color: 'var(--text-secondary)',
-          fontSize: '0.875rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.375rem',
-        }}>
-          <CalendarDays size={15} /> All
-        </button>
+
+        {/* Month filter dropdown */}
+        <div ref={filterRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setFilterOpen((o) => !o)}
+            style={{
+              padding: '0.625rem 1rem',
+              backgroundColor: monthFilter ? 'var(--accent-light)' : 'var(--bg-card)',
+              border: `1px solid ${monthFilter ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: '0.5rem',
+              color: monthFilter ? 'var(--accent)' : 'var(--text-secondary)',
+              fontSize: '0.875rem',
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <CalendarDays size={15} />
+            {monthFilter ? format(new Date(monthFilter + '-01'), 'MMM yyyy') : 'All'}
+            {monthFilter
+              ? <X size={13} onClick={(e) => { e.stopPropagation(); setMonthFilter(''); setPage(0) }} style={{ marginLeft: '0.125rem' }} />
+              : <ChevronDown size={13} />
+            }
+          </button>
+          {filterOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 0.375rem)', zIndex: 50,
+              backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '0.5rem', minWidth: '160px', overflow: 'hidden',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            }}>
+              <button
+                onClick={() => { setMonthFilter(''); setPage(0); setFilterOpen(false) }}
+                style={{
+                  width: '100%', textAlign: 'left', padding: '0.625rem 1rem',
+                  fontSize: '0.875rem', color: !monthFilter ? 'var(--accent)' : 'var(--text-primary)',
+                  fontWeight: !monthFilter ? 600 : 400,
+                  backgroundColor: !monthFilter ? 'var(--accent-light)' : 'transparent',
+                }}
+              >
+                All months
+              </button>
+              {monthOptions.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => { setMonthFilter(m); setPage(0); setFilterOpen(false) }}
+                  style={{
+                    width: '100%', textAlign: 'left', padding: '0.625rem 1rem',
+                    fontSize: '0.875rem', color: monthFilter === m ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: monthFilter === m ? 600 : 400,
+                    backgroundColor: monthFilter === m ? 'var(--accent-light)' : 'transparent',
+                  }}
+                >
+                  {format(new Date(m + '-01'), 'MMMM yyyy')}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* View toggle */}
@@ -385,6 +447,11 @@ export default function LogsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                 All Sessions
+                {(search || monthFilter) && filtered.length > 0 && (
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                    ({filtered.length} result{filtered.length !== 1 ? 's' : ''})
+                  </span>
+                )}
               </h2>
               <Link to="/logs/new" style={{
                 display: 'flex', alignItems: 'center', gap: '0.25rem',
@@ -403,9 +470,9 @@ export default function LogsPage() {
             ) : filtered.length === 0 ? (
               <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '3rem', textAlign: 'center' }}>
                 <p style={{ color: 'var(--text-muted)', margin: '0 0 0.75rem' }}>
-                  {search ? 'No sessions match your search.' : 'No sessions yet.'}
+                  {search || monthFilter ? 'No sessions match your search.' : 'No sessions yet.'}
                 </p>
-                {!search && (
+                {!search && !monthFilter && (
                   <Link to="/logs/new" style={{ display: 'inline-block', backgroundColor: 'var(--accent)', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: 600 }}>
                     Log your first session
                   </Link>
@@ -413,7 +480,7 @@ export default function LogsPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {filtered.map((session) => (
+                {paginated.map((session) => (
                   <div key={session.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
                     <div style={{ flex: 1 }}>
                       <Link
@@ -471,14 +538,15 @@ export default function LogsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.25rem',
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'var(--bg-hover)',
+                    padding: '0.5rem 0.875rem',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     color: page === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem', fontWeight: 500,
@@ -487,16 +555,35 @@ export default function LogsPage() {
                 >
                   <ChevronLeft size={16} /> Prev
                 </button>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  Page {page + 1} of {totalPages}
-                </span>
+
+                {/* Page number buttons */}
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  {Array.from({ length: totalPages }, (_, i) => i).map((i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPage(i)}
+                      style={{
+                        width: '34px', height: '34px',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem', fontWeight: page === i ? 700 : 500,
+                        backgroundColor: page === i ? 'var(--accent)' : 'var(--bg-card)',
+                        color: page === i ? 'white' : 'var(--text-secondary)',
+                        border: `1px solid ${page === i ? 'var(--accent)' : 'var(--border)'}`,
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.25rem',
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'var(--bg-hover)',
+                    padding: '0.5rem 0.875rem',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     color: page >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem', fontWeight: 500,
