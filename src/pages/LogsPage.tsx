@@ -9,7 +9,7 @@ import SessionService from '../services/sessionService'
 import { supabase } from '../lib/supabase'
 import { formatTime12h, formatDuration } from '../utils/timeUtils'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import type { SessionWithBreaks, PaySetup } from '../types/database'
+import type { Session, SessionWithBreaks, PaySetup } from '../types/database'
 
 function formatCurrency(amount: number, currency: string): string {
   try {
