@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Loader2, Mail, User, GraduationCap, Building2, Lock, BookOpen } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Mail as MailIcon, User, GraduationCap, Building2, Lock, BookOpen } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import Select from '../../components/ui/Select'
 
@@ -10,6 +10,7 @@ const spinStyle = `@keyframes spin { from { transform: rotate(0deg); } to { tran
 const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 
 export default function SignupPage() {
+  const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [school, setSchool] = useState('')
@@ -18,7 +19,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
@@ -60,7 +60,11 @@ export default function SignupPage() {
       } as any, { onConflict: 'user_id' })
     }
 
-    setSuccess(true)
+    // If session exists (email confirmation disabled), auth listener handles redirect automatically.
+    // Otherwise navigate to login.
+    if (!data.session) {
+      navigate('/login')
+    }
     setLoading(false)
   }
 
@@ -83,48 +87,6 @@ export default function SignupPage() {
   function onBlur(e: React.FocusEvent<HTMLInputElement>) {
     e.target.style.borderColor = 'var(--border)'
     e.target.style.boxShadow = 'none'
-  }
-
-  if (success) {
-    return (
-      <div style={{
-        minHeight: '100vh', backgroundColor: 'var(--bg-tertiary)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
-      }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}
-        >
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '68px', height: '68px', borderRadius: '50%',
-            backgroundColor: 'rgba(35,165,90,0.1)', border: '1px solid rgba(35,165,90,0.2)',
-            marginBottom: '1.25rem',
-          }}>
-            <Mail size={32} style={{ color: 'var(--success)' }} />
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
-            Check your email
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0 0 0.375rem' }}>
-            We sent a confirmation link to
-          </p>
-          <p style={{ color: 'var(--accent)', fontWeight: 600, margin: '0 0 0.75rem' }}>{email}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 2rem', lineHeight: 1.6 }}>
-            Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it.
-          </p>
-          <Link to="/login" style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0.8125rem 2rem', backgroundColor: 'var(--accent)', color: 'white',
-            borderRadius: '0.625rem', fontWeight: 700, fontSize: '0.9375rem',
-          }}>
-            Back to Sign In
-          </Link>
-        </motion.div>
-      </div>
-    )
   }
 
   return (
@@ -224,7 +186,7 @@ export default function SignupPage() {
                 Email *
               </label>
               <div className="input-icon-wrapper">
-                <Mail size={13} className="input-icon" />
+                <MailIcon size={13} className="input-icon" />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                   placeholder="you@example.com" style={inputBase} onFocus={onFocus} onBlur={onBlur} />
               </div>
