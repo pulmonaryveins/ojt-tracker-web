@@ -35,6 +35,7 @@ function FieldLabel({ text, hint }: { text: string; hint?: string }) {
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user)
+  const setSession = useAuthStore((s) => s.setSession)
   const userId = user?.id ?? ''
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -182,6 +183,9 @@ export default function ProfilePage() {
     if (error) {
       toast(error.message, 'error')
     } else {
+      // Refresh session after password change to keep auth state stable
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) setSession(session)
       toast('Password updated successfully!', 'success')
       setNewPassword('')
       setConfirmPassword('')

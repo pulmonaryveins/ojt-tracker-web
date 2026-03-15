@@ -19,9 +19,12 @@ export default function AppLayout() {
       return data as OjtSetup | null
     },
     enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 min — prevents re-fetch on every navigation
   })
 
   useEffect(() => {
+    // Don't redirect while on profile page (e.g. after password change triggers re-fetch)
+    if (location.pathname === '/profile') return
     if (!loadingOjt && ojtSetup === null && userId) {
       const skipped = localStorage.getItem(`onboarding_done_${userId}`)
       if (!skipped) {

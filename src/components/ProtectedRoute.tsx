@@ -14,8 +14,13 @@ export default function ProtectedRoute() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+        } else if (session) {
+          // USER_UPDATED, SIGNED_IN, TOKEN_REFRESHED — keep session
+          setSession(session)
+        }
       }
     )
 

@@ -34,13 +34,6 @@ export default function OnboardingPage() {
     }
   }, [user])
 
-  // When user explicitly navigates here, clear the skip flag so the page is fully accessible
-  useEffect(() => {
-    if (userId) {
-      localStorage.removeItem(`onboarding_done_${userId}`)
-    }
-  }, [userId])
-
   // Step 2: OJT setup
   const [requiredHours, setRequiredHours] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -137,8 +130,9 @@ export default function OnboardingPage() {
   }
 
   function handleSkip() {
-    // Mark as done so AppLayout doesn't redirect back
     localStorage.setItem(`onboarding_done_${userId}`, '1')
+    // Keep the cache returning null (no ojt_setup) but mark stale so it won't re-trigger redirect
+    queryClient.setQueryData(['ojtSetup', userId], null)
     navigate('/dashboard', { replace: true })
   }
 
