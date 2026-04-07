@@ -504,7 +504,7 @@ export default function ReportsPage() {
             content: s.journal.trim(),
             colSpan: 5,
             styles: { textColor: C.mid, fontSize: 7, overflow: 'linebreak' as const },
-          },
+          } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         ])
       }
     })

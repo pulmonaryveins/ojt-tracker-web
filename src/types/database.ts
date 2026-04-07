@@ -49,6 +49,7 @@ export interface PaySetup {
   hourly_rate: number
   currency: string
   effective_date: string | null
+  pay_period_days: number | null
 }
 
 // Supabase Database type for typed client
