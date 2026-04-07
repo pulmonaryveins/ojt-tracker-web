@@ -292,16 +292,18 @@ export default function ReportsPage() {
   function exportCSV() {
     const header = 'Date,Time In,Time Out,Duration,Total Hours,Breaks,Journal'
     const rows = sessions.map((s) => {
-      const breakCount = s.breaks?.length ?? 0
-      const journalSnippet = s.journal ? s.journal.slice(0, 120).replace(/"/g, '""') : ''
+      const breaksCell = s.breaks && s.breaks.length > 0
+        ? `"${s.breaks.map((b, i) => `Break ${i + 1}: ${formatTime12h(b.start_time)} - ${b.end_time ? formatTime12h(b.end_time) : '?'} (${b.duration}m)`).join('; ')}"`
+        : ''
+      const journal = s.journal ? `"${s.journal.replace(/"/g, '""')}"` : ''
       return [
         s.date,
         formatTime12h(s.start_time),
         s.end_time ? formatTime12h(s.end_time) : '',
         formatDuration(s.duration),
         s.total_hours.toFixed(2),
-        breakCount,
-        `"${journalSnippet}"`,
+        breaksCell,
+        journal,
       ].join(',')
     })
     const csv = [header, ...rows].join('\n')
@@ -447,18 +449,85 @@ export default function ReportsPage() {
     doc.text('SESSION LOG', margin, y)
     y += 4
 
+    // Build table body: session row + optional break sub-rows
+    const tableBody: { content: string; styles?: object }[][] = []
+    sessions.forEach((s) => {
+      const breakCount = s.breaks?.length ?? 0
+      const totalBreakMin = s.breaks?.reduce((acc, b) => acc + b.duration, 0) ?? 0
+      const breaksCell = breakCount > 0
+        ? `${breakCount} break${breakCount > 1 ? 's' : ''} (${totalBreakMin}m total)`
+        : '—'
+
+      tableBody.push([
+        { content: format(new Date(s.date + 'T00:00:00'), 'MMM d, yyyy') },
+        { content: formatTime12h(s.start_time) },
+        { content: s.end_time ? formatTime12h(s.end_time) : '—' },
+        { content: formatDuration(s.duration) },
+        { content: s.total_hours.toFixed(2) + 'h' },
+        { content: breaksCell },
+      ])
+
+      // Break sub-rows
+      if (s.breaks && s.breaks.length > 0) {
+        s.breaks.forEach((b, i) => {
+          tableBody.push([
+            {
+              content: `  ↳ Break ${i + 1}`,
+              styles: { textColor: C.light, fontStyle: 'italic', fontSize: 7 },
+            },
+            {
+              content: formatTime12h(b.start_time),
+              styles: { textColor: C.light, fontSize: 7 },
+            },
+            {
+              content: b.end_time ? formatTime12h(b.end_time) : '—',
+              styles: { textColor: C.light, fontSize: 7 },
+            },
+            {
+              content: `${b.duration}m`,
+              styles: { textColor: C.light, fontSize: 7 },
+            },
+            { content: '', styles: { textColor: C.light, fontSize: 7 } },
+            { content: '', styles: { textColor: C.light, fontSize: 7 } },
+          ])
+        })
+      }
+
+      // Journal sub-row
+      if (s.journal && s.journal.trim()) {
+        tableBody.push([
+          {
+            content: '  Journal:',
+            styles: { textColor: C.light, fontStyle: 'bold', fontSize: 7 },
+          },
+          {
+            content: s.journal.trim(),
+            colSpan: 5,
+            styles: { textColor: C.mid, fontSize: 7, overflow: 'linebreak' as const },
+          },
+        ])
+      }
+    })
+
+    const pageFooter = (data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const pageCount = (doc as any).internal.getNumberOfPages()
+      const pageNum = (doc as any).internal.getCurrentPageInfo().pageNumber
+      doc.setDrawColor(...C.rule)
+      doc.setLineWidth(0.3)
+      doc.line(margin, 284, pageW - margin, 284)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(...C.light)
+      doc.text('OJT Tracker', margin, 290)
+      doc.text(`Page ${pageNum} of ${pageCount}`, pageW - margin, 290, { align: 'right' })
+      void data
+    }
+
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Date', 'Time In', 'Time Out', 'Duration', 'Hours', 'Journal']],
-      body: sessions.map((s) => [
-        format(new Date(s.date + 'T00:00:00'), 'MMM d, yyyy'),
-        formatTime12h(s.start_time),
-        s.end_time ? formatTime12h(s.end_time) : '—',
-        formatDuration(s.duration),
-        s.total_hours.toFixed(2) + 'h',
-        s.journal ? s.journal.slice(0, 55) : '—',
-      ]),
+      head: [['Date', 'Time In', 'Time Out', 'Duration', 'Hours', 'Breaks']],
+      body: tableBody,
       styles: {
         fontSize: 8,
         cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 },
@@ -475,27 +544,14 @@ export default function ReportsPage() {
       },
       alternateRowStyles: { fillColor: C.rowAlt },
       columnStyles: {
-        0: { cellWidth: 26 },
-        1: { cellWidth: 20 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 20 },
-        4: { cellWidth: 16 },
+        0: { cellWidth: 28 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 18 },
         5: { cellWidth: 'auto' },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      didDrawPage: (data: any) => {
-        const pageCount = (doc as any).internal.getNumberOfPages()
-        const pageNum = (doc as any).internal.getCurrentPageInfo().pageNumber
-        doc.setDrawColor(...C.rule)
-        doc.setLineWidth(0.3)
-        doc.line(margin, 284, pageW - margin, 284)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(7)
-        doc.setTextColor(...C.light)
-        doc.text('OJT Tracker', margin, 290)
-        doc.text(`Page ${pageNum} of ${pageCount}`, pageW - margin, 290, { align: 'right' })
-        void data
-      },
+      didDrawPage: pageFooter,
     })
 
     doc.save(`ojt-report-${startDate}-to-${endDate}.pdf`)

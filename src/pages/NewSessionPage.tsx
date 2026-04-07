@@ -138,14 +138,16 @@ export default function NewSessionPage() {
         journal || null, breakData, imageUrls
       )
     },
-    onSuccess: (session) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] })
       queryClient.invalidateQueries({ queryKey: ['allSessions'] })
+      queryClient.invalidateQueries({ queryKey: ['sessionsMonth'] })
       queryClient.invalidateQueries({ queryKey: ['totalHours'] })
       queryClient.invalidateQueries({ queryKey: ['daysCount'] })
       queryClient.invalidateQueries({ queryKey: ['recentSessions'] })
+      queryClient.invalidateQueries({ queryKey: ['reportSessions'] })
       toast('Session saved successfully!', 'success')
-      navigate(`/logs/${session.id}`)
+      navigate('/logs')
     },
     onError: (err: Error) => toast(err.message, 'error'),
   })
