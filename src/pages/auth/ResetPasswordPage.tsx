@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, Lock, ShieldCheck } from 'lucide-react'
@@ -14,6 +14,29 @@ export default function ResetPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [verifying, setVerifying] = useState(true)
+
+  useEffect(() => {
+    // Supabase fires PASSWORD_RECOVERY when the user lands with a valid recovery token in the hash.
+    // We listen for it to confirm the session is ready before allowing password update.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setSessionReady(true)
+        setVerifying(false)
+      }
+    })
+
+    // Also check if a session already exists (handles page refresh after hash is cleared)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true)
+      }
+      setVerifying(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const inputBase: React.CSSProperties = {
     backgroundColor: 'var(--bg-secondary)',
@@ -60,6 +83,35 @@ export default function ResetPasswordPage() {
 
     await supabase.auth.signOut()
     navigate('/login')
+  }
+
+  if (verifying) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+        <style>{spinStyle}</style>
+      </div>
+    )
+  }
+
+  if (!sessionReady) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <style>{spinStyle}</style>
+        <div style={{ textAlign: 'center', maxWidth: '380px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(242,63,66,0.1)', border: '1px solid rgba(242,63,66,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <ShieldCheck size={28} style={{ color: 'var(--error)' }} />
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem' }}>Invalid or expired link</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.5rem', lineHeight: 1.6 }}>
+            This password reset link is invalid or has expired. Please request a new one.
+          </p>
+          <button onClick={() => navigate('/forgot-password')} style={{ backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.625rem', padding: '0.75rem 1.5rem', fontWeight: 700, fontSize: '0.9375rem' }}>
+            Request new link
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
