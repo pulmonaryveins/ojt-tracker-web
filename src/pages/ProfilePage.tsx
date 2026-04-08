@@ -247,9 +247,13 @@ export default function ProfilePage() {
         .profile-outer { display: flex; flex-direction: column; gap: 1.5rem; }
         .profile-side { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .profile-logout-mobile { display: none; }
+        .profile-tab-label { display: inline; }
         @media (max-width: 768px) {
           .profile-side { grid-template-columns: 1fr; }
           .profile-logout-mobile { display: flex; }
+        }
+        @media (max-width: 400px) {
+          .profile-tab-label { display: none; }
         }
       `}</style>
 
@@ -378,7 +382,7 @@ export default function ProfilePage() {
                 }}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="profile-tab-label">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -411,7 +415,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="grid-2-col">
                       <div>
                         <FieldLabel text="Year Level" />
                         <Select
@@ -466,7 +470,7 @@ export default function ProfilePage() {
                   Change Password
                 </h3>
                 <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="grid-2-col">
                     <div>
                       <FieldLabel text="New Password" />
                       <div className="input-icon-wrapper">
@@ -527,7 +531,7 @@ export default function ProfilePage() {
                       style={{ backgroundColor: progressPct >= 100 ? 'var(--success)' : 'var(--accent)', height: '100%', borderRadius: '9999px' }}
                     />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div className="grid-3-col" style={{ gap: '0.75rem' }}>
                     {[
                       { label: 'Completed', value: `${totalHours.toFixed(1)} hrs` },
                       { label: 'Required', value: `${requiredHoursNum} hrs` },
@@ -558,7 +562,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'end' }}>
+                    <div className="onboarding-dates-grid" style={{ alignItems: 'end' }}>
                       <div>
                         <FieldLabel text="OJT Start Date" />
                         <DatePicker value={ojtStart} onChange={setOjtStart} placeholder="Select start date" />

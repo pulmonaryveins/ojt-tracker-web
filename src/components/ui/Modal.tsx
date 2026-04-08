@@ -54,7 +54,9 @@ export function Modal({ open, onClose, title, children, maxWidth = '440px' }: Mo
               borderRadius: '0.75rem',
               width: '100%',
               maxWidth,
-              overflow: 'hidden',
+              maxHeight: 'calc(100dvh - 2rem)',
+              overflowY: 'auto',
+              overflowX: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}
           >

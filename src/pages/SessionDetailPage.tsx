@@ -417,7 +417,7 @@ export default function SessionDetailPage() {
 
         {/* Bottom action row */}
         {isEditing ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="grid-2-col" style={{ gap: '0.75rem' }}>
             <button onClick={() => saveEdit()} disabled={isSaving}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--success)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isSaving ? 0.7 : 1 }}>
               <Check size={16} /> {isSaving ? 'Saving…' : 'Save Changes'}
@@ -428,7 +428,7 @@ export default function SessionDetailPage() {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="grid-2-col" style={{ gap: '0.75rem' }}>
             <button onClick={() => toast('PDF export coming soon!', 'info')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem' }}>
               <Download size={18} /> Export as PDF

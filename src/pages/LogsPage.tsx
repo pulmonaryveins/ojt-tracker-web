@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -110,7 +110,7 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {/* Empty cells before first day */}
             {Array.from({ length: startOffset }).map((_, i) => (
-              <div key={`empty-${i}`} style={{ minHeight: earningsEnabled ? '88px' : '72px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
+              <div key={`empty-${i}`} className={`cal-cell${earningsEnabled ? ' with-earnings' : ''}`} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
             ))}
 
             {days.map((day, idx) => {
@@ -123,11 +123,10 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
               return (
                 <div
                   key={dateStr}
+                  className={`cal-cell${earningsEnabled ? ' with-earnings' : ''}`}
                   style={{
-                    minHeight: earningsEnabled ? '88px' : '72px',
                     borderRight: colIdx < 6 ? '1px solid var(--border)' : 'none',
                     borderBottom: '1px solid var(--border)',
-                    padding: '0.375rem',
                     position: 'relative',
                     opacity: inMonth ? 1 : 0.4,
                     cursor: session ? 'pointer' : 'default',
@@ -142,14 +141,14 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
                   }}
                   onClick={() => session && window.open(`/logs/${session.id}`, '_self')}
                 >
-                  <div style={{
-                    width: '26px', height: '26px', borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: isCurrentDay ? 'var(--accent)' : 'transparent',
-                    color: isCurrentDay ? 'white' : 'var(--text-secondary)',
-                    fontSize: '0.8125rem', fontWeight: isCurrentDay ? 700 : 500,
-                    marginBottom: '0.25rem',
-                  }}>
+                  <div
+                    className="cal-date-circle"
+                    style={{
+                      backgroundColor: isCurrentDay ? 'var(--accent)' : 'transparent',
+                      color: isCurrentDay ? 'white' : 'var(--text-secondary)',
+                      fontWeight: isCurrentDay ? 700 : 500,
+                    }}
+                  >
                     {format(day, 'd')}
                   </div>
                   {session && (
@@ -157,11 +156,14 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
                       <div style={{
                         backgroundColor: 'var(--accent)',
                         borderRadius: '4px',
-                        padding: '0.1875rem 0.375rem',
+                        padding: '0.1875rem 0.25rem',
                         fontSize: '0.6875rem',
                         fontWeight: 700,
                         color: 'white',
                         textAlign: 'center',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}>
                         {session.total_hours.toFixed(1)}h
                       </div>
@@ -169,7 +171,7 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
                         <div style={{
                           backgroundColor: 'rgba(35,165,90,0.15)',
                           borderRadius: '4px',
-                          padding: '0.1875rem 0.375rem',
+                          padding: '0.1875rem 0.25rem',
                           fontSize: '0.625rem',
                           fontWeight: 700,
                           color: 'var(--success)',
@@ -193,6 +195,44 @@ function CalendarView({ userId, paySetup }: { userId: string; paySetup?: PaySetu
   )
 }
 
+/** Returns ordered array of page indices + 'ellipsis' markers to render. */
+function getPageButtons(
+  current: number,
+  total: number,
+  isMobile: boolean,
+): (number | 'ellipsis-left' | 'ellipsis-right')[] {
+  if (total <= (isMobile ? 5 : 7)) {
+    return Array.from({ length: total }, (_, i) => i)
+  }
+
+  if (isMobile) {
+    // Mobile: first  [...]  current  [...]  last
+    const items: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+    items.push(0)
+    if (current > 1) items.push('ellipsis-left')
+    if (current > 0 && current < total - 1) items.push(current)
+    if (current < total - 2) items.push('ellipsis-right')
+    items.push(total - 1)
+    // Deduplicate (e.g. when current === 0 or current === total-1)
+    return items.filter((v, i, arr) => arr.indexOf(v) === i)
+  }
+
+  // Desktop: first  [...]  cur-1  cur  cur+1  [...]  last
+  const show = new Set<number>([0, total - 1, current])
+  if (current - 1 >= 1) show.add(current - 1)
+  if (current + 1 <= total - 2) show.add(current + 1)
+
+  const sorted = Array.from(show).sort((a, b) => a - b)
+  const result: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    result.push(sorted[i])
+    if (i < sorted.length - 1 && sorted[i + 1] - sorted[i] > 1) {
+      result.push(i === 0 ? 'ellipsis-left' : 'ellipsis-right')
+    }
+  }
+  return result
+}
+
 export default function LogsPage() {
   const user = useAuthStore((s) => s.user)
   const userId = user?.id ?? ''
@@ -202,6 +242,7 @@ export default function LogsPage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const filterRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 600)
 
   // Close filter dropdown on outside click
   useEffect(() => {
@@ -212,6 +253,13 @@ export default function LogsPage() {
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  // Track viewport width for mobile-aware pagination
+  useEffect(() => {
+    function handleResize() { setIsMobile(window.innerWidth < 600) }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   const { data: paySetup } = useQuery({
@@ -252,6 +300,12 @@ export default function LogsPage() {
   // Client-side pagination
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  // Pagination page buttons (with ellipsis)
+  const pageButtons = useMemo(
+    () => getPageButtons(page, totalPages, isMobile),
+    [page, totalPages, isMobile],
+  )
 
   // Stats (always from all data)
   const totalHours = allData.reduce((s, x) => s + (x.total_hours ?? 0), 0)
@@ -309,8 +363,8 @@ export default function LogsPage() {
       </div>
 
       {/* Search + filter row */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '160px' }}>
           <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -358,7 +412,7 @@ export default function LogsPage() {
             <div style={{
               position: 'absolute', right: 0, top: 'calc(100% + 0.375rem)', zIndex: 50,
               backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '0.5rem', minWidth: '160px', overflow: 'hidden',
+              borderRadius: '0.5rem', minWidth: '160px', maxWidth: '92vw', overflow: 'hidden',
               boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
             }}>
               <button
@@ -564,59 +618,44 @@ export default function LogsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="pagination">
+                {/* Prev */}
                 <button
+                  className="pagination-btn nav"
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem',
-                    padding: '0.5rem 0.875rem',
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    color: page === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem', fontWeight: 500,
-                    opacity: page === 0 ? 0.5 : 1,
-                  }}
+                  aria-label="Previous page"
                 >
-                  <ChevronLeft size={16} /> Prev
+                  <ChevronLeft size={16} />
+                  <span className="btn-label">Prev</span>
                 </button>
 
-                {/* Page number buttons */}
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                  {Array.from({ length: totalPages }, (_, i) => i).map((i) => (
+                {/* Page buttons with ellipsis */}
+                {pageButtons.map((item, idx) =>
+                  item === 'ellipsis-left' || item === 'ellipsis-right' ? (
+                    <span key={`${item}-${idx}`} className="pagination-ellipsis">…</span>
+                  ) : (
                     <button
-                      key={i}
-                      onClick={() => setPage(i)}
-                      style={{
-                        width: '34px', height: '34px',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem', fontWeight: page === i ? 700 : 500,
-                        backgroundColor: page === i ? 'var(--accent)' : 'var(--bg-card)',
-                        color: page === i ? 'white' : 'var(--text-secondary)',
-                        border: `1px solid ${page === i ? 'var(--accent)' : 'var(--border)'}`,
-                      }}
+                      key={item}
+                      className={`pagination-btn${page === item ? ' active' : ''}`}
+                      onClick={() => setPage(item)}
+                      aria-label={`Page ${item + 1}`}
+                      aria-current={page === item ? 'page' : undefined}
                     >
-                      {i + 1}
+                      {item + 1}
                     </button>
-                  ))}
-                </div>
+                  )
+                )}
 
+                {/* Next */}
                 <button
+                  className="pagination-btn nav"
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem',
-                    padding: '0.5rem 0.875rem',
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    color: page >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem', fontWeight: 500,
-                    opacity: page >= totalPages - 1 ? 0.5 : 1,
-                  }}
+                  aria-label="Next page"
                 >
-                  Next <ChevronRight size={16} />
+                  <span className="btn-label">Next</span>
+                  <ChevronRight size={16} />
                 </button>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -208,34 +208,86 @@ function CumulativeChart({ sessions }: { sessions: SessionWithBreaks[] }) {
   )
 }
 
-// ── Pagination Component ──────────────────────────────────────────
+// ── Shared pagination helper ──────────────────────────────────────
 
 const PAGE_SIZE = 5
 
+function getPageButtons(
+  current: number,
+  total: number,
+  isMobile: boolean,
+): (number | 'ellipsis-left' | 'ellipsis-right')[] {
+  if (total <= (isMobile ? 5 : 7)) return Array.from({ length: total }, (_, i) => i)
+  if (isMobile) {
+    const items: (number | 'ellipsis-left' | 'ellipsis-right')[] = [0]
+    if (current > 1) items.push('ellipsis-left')
+    if (current > 0 && current < total - 1) items.push(current)
+    if (current < total - 2) items.push('ellipsis-right')
+    items.push(total - 1)
+    return items.filter((v, i, arr) => arr.indexOf(v) === i)
+  }
+  const show = new Set<number>([0, total - 1, current])
+  if (current - 1 >= 1) show.add(current - 1)
+  if (current + 1 <= total - 2) show.add(current + 1)
+  const sorted = Array.from(show).sort((a, b) => a - b)
+  const result: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    result.push(sorted[i])
+    if (i < sorted.length - 1 && sorted[i + 1] - sorted[i] > 1)
+      result.push(i === 0 ? 'ellipsis-left' : 'ellipsis-right')
+  }
+  return result
+}
+
+// ── Pagination Component ──────────────────────────────────────────
+
 function Pagination({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 600)
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 600)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+
   if (totalPages <= 1) return null
+  const buttons = getPageButtons(page, totalPages, isMobile)
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', flexWrap: 'wrap' }}>
+    <div className="pagination" style={{ padding: '0.75rem 0' }}>
       <button
+        className="pagination-btn nav"
         onClick={() => onPage(Math.max(0, page - 1))}
         disabled={page === 0}
-        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: page === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: page === 0 ? 0.5 : 1 }}
+        aria-label="Previous page"
       >
-        <ChevronLeft size={14} /> Prev
+        <ChevronLeft size={15} />
+        <span className="btn-label">Prev</span>
       </button>
-      <div style={{ display: 'flex', gap: '0.25rem' }}>
-        {Array.from({ length: totalPages }, (_, i) => (
-          <button key={i} onClick={() => onPage(i)} style={{ width: '32px', height: '32px', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: page === i ? 700 : 400, backgroundColor: page === i ? 'var(--accent)' : 'var(--bg-secondary)', color: page === i ? 'white' : 'var(--text-secondary)', border: `1px solid ${page === i ? 'var(--accent)' : 'var(--border)'}` }}>
-            {i + 1}
+
+      {buttons.map((item, idx) =>
+        item === 'ellipsis-left' || item === 'ellipsis-right' ? (
+          <span key={`${item}-${idx}`} className="pagination-ellipsis">…</span>
+        ) : (
+          <button
+            key={item}
+            className={`pagination-btn${page === item ? ' active' : ''}`}
+            onClick={() => onPage(item)}
+            aria-label={`Page ${item + 1}`}
+            aria-current={page === item ? 'page' : undefined}
+          >
+            {item + 1}
           </button>
-        ))}
-      </div>
+        )
+      )}
+
       <button
+        className="pagination-btn nav"
         onClick={() => onPage(Math.min(totalPages - 1, page + 1))}
         disabled={page >= totalPages - 1}
-        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: page >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: page >= totalPages - 1 ? 0.5 : 1 }}
+        aria-label="Next page"
       >
-        Next <ChevronRight size={14} />
+        <span className="btn-label">Next</span>
+        <ChevronRight size={15} />
       </button>
     </div>
   )
@@ -622,7 +674,7 @@ export default function ReportsPage() {
             </span>
           )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="grid-2-col">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
             <DatePicker value={startDate} onChange={handleStartDate} placeholder="Select start date" />
@@ -665,8 +717,8 @@ export default function ReportsPage() {
             <DailyHoursChart sessions={sessions} />
           </div>
 
-          {/* Weekday Avg + Cumulative — Side by Side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* Weekday Avg + Cumulative — Side by Side (stacks on mobile) */}
+          <div className="grid-2-col">
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <CalendarDays size={15} style={{ color: 'var(--accent)' }} />

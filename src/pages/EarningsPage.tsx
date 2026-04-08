@@ -243,7 +243,7 @@ function PayPeriodsCalendarView({
       {/* Calendar grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {Array.from({ length: startOffset }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ minHeight: '80px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
+          <div key={`empty-${i}`} className="cal-cell with-earnings" style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
         ))}
 
         {days.map((day, idx) => {
@@ -260,11 +260,10 @@ function PayPeriodsCalendarView({
           return (
             <div
               key={dateStr}
+              className="cal-cell with-earnings"
               style={{
-                minHeight: '80px',
                 borderRight: colIdx < 6 ? '1px solid var(--border)' : 'none',
                 borderBottom: '1px solid var(--border)',
-                padding: '0.375rem',
                 position: 'relative',
                 opacity: inMonth ? 1 : 0.35,
                 backgroundColor: isCurrentDay
@@ -295,14 +294,14 @@ function PayPeriodsCalendarView({
               )}
 
               {/* Day number */}
-              <div style={{
-                width: '24px', height: '24px', borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backgroundColor: isCurrentDay ? 'var(--accent)' : 'transparent',
-                color: isCurrentDay ? 'white' : 'var(--text-secondary)',
-                fontSize: '0.8125rem', fontWeight: isCurrentDay ? 700 : 500,
-                marginBottom: '0.25rem',
-              }}>
+              <div
+                className="cal-date-circle"
+                style={{
+                  backgroundColor: isCurrentDay ? 'var(--accent)' : 'transparent',
+                  color: isCurrentDay ? 'white' : 'var(--text-secondary)',
+                  fontWeight: isCurrentDay ? 700 : 500,
+                }}
+              >
                 {format(day, 'd')}
               </div>
 
@@ -502,6 +501,34 @@ function PayPeriodRow({ period, curr, rate }: { period: PayPeriod; curr: string;
   )
 }
 
+// ── Shared pagination helper ──────────────────────────────────────
+function getPageButtons(
+  current: number,
+  total: number,
+  isMobile: boolean,
+): (number | 'ellipsis-left' | 'ellipsis-right')[] {
+  if (total <= (isMobile ? 5 : 7)) return Array.from({ length: total }, (_, i) => i)
+  if (isMobile) {
+    const items: (number | 'ellipsis-left' | 'ellipsis-right')[] = [0]
+    if (current > 1) items.push('ellipsis-left')
+    if (current > 0 && current < total - 1) items.push(current)
+    if (current < total - 2) items.push('ellipsis-right')
+    items.push(total - 1)
+    return items.filter((v, i, arr) => arr.indexOf(v) === i)
+  }
+  const show = new Set<number>([0, total - 1, current])
+  if (current - 1 >= 1) show.add(current - 1)
+  if (current + 1 <= total - 2) show.add(current + 1)
+  const sorted = Array.from(show).sort((a, b) => a - b)
+  const result: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    result.push(sorted[i])
+    if (i < sorted.length - 1 && sorted[i + 1] - sorted[i] > 1)
+      result.push(i === 0 ? 'ellipsis-left' : 'ellipsis-right')
+  }
+  return result
+}
+
 // ── Filter period type ─────────────────────────────────────────────
 const EARNINGS_PAGE_SIZE = 5
 const PAY_PERIODS_SHOWN = 6
@@ -532,8 +559,15 @@ export default function EarningsPage() {
   const [payPeriodsView, setPayPeriodsView] = useState<'list' | 'calendar'>('list')
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all')
   const [breakdownPage, setBreakdownPage] = useState(0)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 600)
 
   const handleFilterPeriod = useCallback((p: FilterPeriod) => { setFilterPeriod(p); setBreakdownPage(0) }, [])
+
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 600)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
 
   const { data: paySetup, isLoading: loadingPay } = useQuery({
     queryKey: ['paySetup', userId],
@@ -765,8 +799,8 @@ export default function EarningsPage() {
       ) : (
         /* ── Earnings Dashboard ── */
         <>
-          {/* Stat Cards (2 cards) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* Stat Cards (2 cards — stays 2-col: each card is readable at ≥160px) */}
+          <div className="grid-2-col">
             {[
               { label: 'Total Earned', value: formatCurrency(totalEarned, curr), sub: `${formatHours(totalHours)} logged`, icon: DollarSign },
               { label: 'This Month', value: formatCurrency(thisMonthEarned, curr), sub: `${formatHours(thisMonthHours)} this month`, icon: CalendarDays },
@@ -832,7 +866,7 @@ export default function EarningsPage() {
                     <DatePicker value={effectiveDate} onChange={setEffectiveDate} placeholder="Select effective date" />
                   </div>
                   <PayPeriodField payPeriodValue={payPeriodValue} setPayPeriodValue={setPayPeriodValue} customDays={customDays} setCustomDays={setCustomDays} effectiveDate={effectiveDate} resolvedPayPeriodDays={resolvedPayPeriodDays} inputBase={inputBase} onFocus={onFocus} onBlur={onBlur} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="grid-2-col">
                     <button type="submit" disabled={savingPay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--accent)', color: 'white', padding: '0.75rem', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.875rem', opacity: savingPay ? 0.75 : 1, transition: 'opacity 150ms' }}>
                       {savingPay ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : <><Check size={16} /> Save Changes</>}
                     </button>
@@ -953,7 +987,7 @@ export default function EarningsPage() {
                   )}
                 </div>
                 {/* Filter tabs */}
-                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', overflowX: 'auto', flexShrink: 0, maxWidth: '100%', paddingBottom: '2px' }}>
                   <Filter size={13} style={{ color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.125rem', flexShrink: 0 }} />
                   {FILTER_LABELS.map(({ key, label }) => (
                     <button
@@ -1037,22 +1071,38 @@ export default function EarningsPage() {
                   </div>
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                      <button onClick={() => setBreakdownPage((p) => Math.max(0, p - 1))} disabled={breakdownPage === 0}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: breakdownPage === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: breakdownPage === 0 ? 0.5 : 1 }}>
-                        <ChevronLeft size={14} /> Prev
+                    <div className="pagination" style={{ borderTop: '1px solid var(--border)', padding: '0.75rem 0' }}>
+                      <button
+                        className="pagination-btn nav"
+                        onClick={() => setBreakdownPage((p) => Math.max(0, p - 1))}
+                        disabled={breakdownPage === 0}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft size={15} />
+                        <span className="btn-label">Prev</span>
                       </button>
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {Array.from({ length: totalPages }, (_, i) => (
-                          <button key={i} onClick={() => setBreakdownPage(i)}
-                            style={{ width: '32px', height: '32px', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: breakdownPage === i ? 700 : 400, backgroundColor: breakdownPage === i ? 'var(--accent)' : 'var(--bg-secondary)', color: breakdownPage === i ? 'white' : 'var(--text-secondary)', border: `1px solid ${breakdownPage === i ? 'var(--accent)' : 'var(--border)'}` }}>
-                            {i + 1}
+                      {getPageButtons(breakdownPage, totalPages, isMobile).map((item, idx) =>
+                        item === 'ellipsis-left' || item === 'ellipsis-right' ? (
+                          <span key={`${item}-${idx}`} className="pagination-ellipsis">…</span>
+                        ) : (
+                          <button
+                            key={item}
+                            className={`pagination-btn${breakdownPage === item ? ' active' : ''}`}
+                            onClick={() => setBreakdownPage(item)}
+                            aria-label={`Page ${item + 1}`}
+                          >
+                            {item + 1}
                           </button>
-                        ))}
-                      </div>
-                      <button onClick={() => setBreakdownPage((p) => Math.min(totalPages - 1, p + 1))} disabled={breakdownPage >= totalPages - 1}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '0.375rem', fontSize: '0.8125rem', color: breakdownPage >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: breakdownPage >= totalPages - 1 ? 0.5 : 1 }}>
-                        Next <ChevronRight size={14} />
+                        )
+                      )}
+                      <button
+                        className="pagination-btn nav"
+                        onClick={() => setBreakdownPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={breakdownPage >= totalPages - 1}
+                        aria-label="Next page"
+                      >
+                        <span className="btn-label">Next</span>
+                        <ChevronRight size={15} />
                       </button>
                     </div>
                   )}

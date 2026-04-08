@@ -479,7 +479,7 @@ export default function NewSessionPage() {
           </div>
 
           {/* Submit + Cancel */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="grid-2-col" style={{ gap: '0.75rem' }}>
             <button type="submit" disabled={isPending}
               style={{ backgroundColor: 'var(--accent)', color: 'white', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem', opacity: isPending ? 0.75 : 1, transition: 'opacity 150ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               {isPending ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : 'Save Manual Entry'}
