@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign, ChevronDown, X, Coffee } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, List, Calendar, Clock, TrendingUp, CalendarDays, FileDown, BookOpen, DollarSign, ChevronDown, X, Coffee, Upload, Trash2 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday } from 'date-fns'
 import { useAuthStore } from '../stores/authStore'
 import SessionService from '../services/sessionService'
 import { supabase } from '../lib/supabase'
 import { formatTime12h, formatDuration } from '../utils/timeUtils'
 import { SkeletonCard } from '../components/ui/Skeleton'
+import { CsvImportModal } from '../components/ui/CsvImportModal'
+import { Modal } from '../components/ui/Modal'
+import { useToast } from '../components/ui/Toast'
 import type { Session, SessionWithBreaks, PaySetup } from '../types/database'
 
 function formatCurrency(amount: number, currency: string): string {
@@ -243,6 +246,26 @@ export default function LogsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const filterRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 600)
+  const [showImport, setShowImport] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const clearAllMutation = useMutation({
+    mutationFn: () => SessionService.deleteAllSessions(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allSessions', userId] })
+      queryClient.invalidateQueries({ queryKey: ['totalHours', userId] })
+      queryClient.invalidateQueries({ queryKey: ['daysCount', userId] })
+      queryClient.invalidateQueries({ queryKey: ['recentSessions', userId] })
+      queryClient.invalidateQueries({ queryKey: ['sessionsMonth', userId] })
+      setShowClearConfirm(false)
+      toast('All logs have been cleared.', 'success')
+    },
+    onError: () => {
+      toast('Failed to clear logs. Please try again.', 'error')
+    },
+  })
 
   // Close filter dropdown on outside click
   useEffect(() => {
@@ -278,7 +301,7 @@ export default function LogsPage() {
   })
 
   // All session data
-  const allData = allSessions?.data ?? []
+  const allData = useMemo(() => allSessions?.data ?? [], [allSessions])
 
   // Derive unique months from sessions for filter options
   const monthOptions = Array.from(
@@ -306,6 +329,9 @@ export default function LogsPage() {
     () => getPageButtons(page, totalPages, isMobile),
     [page, totalPages, isMobile],
   )
+
+  // Existing dates set for CSV import duplicate detection
+  const existingDates = useMemo(() => new Set(allData.map((s) => s.date)), [allData])
 
   // Stats (always from all data)
   const totalHours = allData.reduce((s, x) => s + (x.total_hours ?? 0), 0)
@@ -347,6 +373,18 @@ export default function LogsPage() {
           >
             <Plus size={15} /> <span className="btn-label">New Session</span>
           </Link>
+          <button
+            onClick={() => setShowImport(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+              padding: '0.5rem 1rem', borderRadius: '0.5rem',
+              fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            <Upload size={15} /> <span className="btn-label">Import</span>
+          </button>
           <Link
             to="/reports"
             style={{
@@ -359,6 +397,20 @@ export default function LogsPage() {
           >
             <FileDown size={15} /> <span className="btn-label">Export</span>
           </Link>
+          {allData.length > 0 && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.375rem',
+                backgroundColor: 'rgba(242,63,66,0.12)', color: 'var(--error)',
+                border: '1px solid rgba(242,63,66,0.35)',
+                padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              <Trash2 size={15} /> <span className="btn-label">Clear All</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -662,6 +714,64 @@ export default function LogsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CsvImportModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        userId={userId}
+        existingDates={existingDates}
+      />
+
+      <Modal
+        open={showClearConfirm}
+        onClose={() => !clearAllMutation.isPending && setShowClearConfirm(false)}
+        title="Clear All Logs"
+        maxWidth="400px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '48px', height: '48px', borderRadius: '50%',
+            backgroundColor: 'rgba(242,63,66,0.12)', margin: '0 auto',
+          }}>
+            <Trash2 size={22} style={{ color: 'var(--error)' }} />
+          </div>
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 600 }}>
+            Delete all {allData.length} session{allData.length !== 1 ? 's' : ''}?
+          </p>
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.55 }}>
+            This will permanently remove all your OJT logs and breaks from the database. This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+            <button
+              onClick={() => setShowClearConfirm(false)}
+              disabled={clearAllMutation.isPending}
+              style={{
+                flex: 1, padding: '0.625rem', borderRadius: '0.5rem',
+                backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)',
+                border: '1px solid var(--border)', fontSize: '0.875rem', fontWeight: 600,
+                cursor: clearAllMutation.isPending ? 'not-allowed' : 'pointer',
+                opacity: clearAllMutation.isPending ? 0.5 : 1,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => clearAllMutation.mutate()}
+              disabled={clearAllMutation.isPending}
+              style={{
+                flex: 1, padding: '0.625rem', borderRadius: '0.5rem',
+                backgroundColor: 'var(--error)', color: 'white',
+                border: 'none', fontSize: '0.875rem', fontWeight: 700,
+                cursor: clearAllMutation.isPending ? 'not-allowed' : 'pointer',
+                opacity: clearAllMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {clearAllMutation.isPending ? 'Clearing…' : 'Clear All Logs'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

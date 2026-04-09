@@ -294,6 +294,34 @@ const SessionService = {
     const fileName = `${userId}/${Date.now()}.${ext}`
     return uploadToStorage('session-images', fileName, file)
   },
+
+  async deleteAllSessions(userId: string): Promise<void> {
+    // Fetch all session IDs for this user
+    const { data: sessions, error: fetchError } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (fetchError) throw fetchError
+
+    const ids = ((sessions ?? []) as any as { id: string }[]).map((s) => s.id)
+
+    // Delete all associated breaks first
+    if (ids.length > 0) {
+      const { error: breaksError } = await supabase
+        .from('breaks')
+        .delete()
+        .in('session_id', ids)
+      if (breaksError) throw breaksError
+    }
+
+    // Delete all sessions
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('user_id', userId)
+    if (error) throw error
+  },
 }
 
 export default SessionService
