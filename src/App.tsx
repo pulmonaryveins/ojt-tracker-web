@@ -5,7 +5,9 @@ import { AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 import AppLayout from './layouts/AppLayout'
+import AdminLayout from './layouts/AdminLayout'
 import { ToastProvider } from './components/ui/Toast'
 import { applyTheme } from './stores/themeStore'
 
@@ -22,6 +24,8 @@ import SessionDetailPage from './pages/SessionDetailPage'
 import ReportsPage from './pages/ReportsPage'
 import ProfilePage from './pages/ProfilePage'
 import EarningsPage from './pages/EarningsPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +66,14 @@ function AnimatedRoutes() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/earnings" element={<EarningsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* Admin routes */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
           </Route>
         </Route>
 
