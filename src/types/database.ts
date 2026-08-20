@@ -5,6 +5,23 @@ export interface Profile {
   year_level: string
   workplace: string
   profile_picture_url: string | null
+  role: 'user' | 'admin'
+}
+
+export interface AdminUserSummary {
+  user_id: string
+  email: string
+  full_name: string
+  school: string
+  workplace: string
+  year_level: string
+  profile_picture_url: string | null
+  required_hours: number | null
+  total_hours: number
+  days_count: number
+  hourly_rate: number | null
+  currency: string | null
+  last_session_date: string | null
 }
 
 export interface OjtSetup {

@@ -27,7 +27,13 @@ export default function LoginPage() {
       return
     }
     setSession(data.session)
-    navigate('/dashboard')
+    // Check if user is admin and redirect accordingly
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', data.session.user.id)
+      .maybeSingle()
+    navigate(profileData?.role === 'admin' ? '/admin' : '/dashboard')
   }
 
   const inputBase: React.CSSProperties = {

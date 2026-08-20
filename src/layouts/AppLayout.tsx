@@ -5,12 +5,22 @@ import Sidebar from '../components/Sidebar'
 import MobileNav from '../components/MobileNav'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
-import type { OjtSetup } from '../types/database'
+import type { OjtSetup, Profile } from '../types/database'
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const userId = useAuthStore((s) => s.user?.id ?? '')
+
+  const { data: profile, isLoading: loadingProfile } = useQuery({
+    queryKey: ['profile-role', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('role').eq('user_id', userId).maybeSingle()
+      return data as Pick<Profile, 'role'> | null
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const { data: ojtSetup, isLoading: loadingOjt } = useQuery({
     queryKey: ['ojtSetup', userId],
@@ -18,11 +28,17 @@ export default function AppLayout() {
       const { data } = await supabase.from('ojt_setup').select('*').eq('user_id', userId).maybeSingle()
       return data as OjtSetup | null
     },
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 min — prevents re-fetch on every navigation
+    enabled: !!userId && profile?.role === 'user',
+    staleTime: 5 * 60 * 1000,
   })
 
   useEffect(() => {
+    if (loadingProfile) return
+    // Admins should never land in AppLayout — redirect them to admin panel
+    if (profile?.role === 'admin') {
+      navigate('/admin', { replace: true })
+      return
+    }
     // Don't redirect while on profile page (e.g. after password change triggers re-fetch)
     if (location.pathname === '/profile') return
     if (!loadingOjt && ojtSetup === null && userId) {
@@ -31,7 +47,16 @@ export default function AppLayout() {
         navigate('/onboarding', { replace: true })
       }
     }
-  }, [loadingOjt, ojtSetup, userId, navigate, location.pathname])
+  }, [loadingProfile, profile, loadingOjt, ojtSetup, userId, navigate, location.pathname])
+
+  // Block rendering until we know the role — prevents flashing the user UI for admins
+  if (loadingProfile || profile?.role === 'admin') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: 'var(--bg-primary)' }}>
+        <div className="spinner" />
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
